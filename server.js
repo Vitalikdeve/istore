@@ -1,4 +1,4 @@
-/* iStore Server v9.0 - CAPTCHA SECURITY 🛡️ */
+/* iStore Server v10.0 - TELEGRAM EDITION ✈️ */
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -6,38 +6,39 @@ const mongoose = require('mongoose');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
 const bcrypt = require('bcryptjs');
-const session = require('express-session'); // <--- 1. Память для капчи
-const svgCaptcha = require('svg-captcha');  // <--- 2. Генератор картинок
+const session = require('express-session');
+const svgCaptcha = require('svg-captcha');
 
 const app = express();
 const PORT = 3000;
 
 const TG_TOKEN = '8554713425:AAHeYxVZhwsku1ZinG1Z8WwzlfE5hFiMCnc'; 
 const TG_CHAT_ID = '1599391998';
-const bot = new TelegramBot(TG_TOKEN, {polling: true}); 
+const bot = new TelegramBot(TG_TOKEN, {polling: false}); // polling: false, чтобы не конфликтовал с Render
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname)));
 
-// --- 3. НАСТРОЙКА СЕССИЙ ---
-// Это позволяет серверу запоминать пользователя, пока он сидит на сайте
+// Настройка сессий
 app.use(session({
-    secret: 'super-secret-key', // Секретный ключ шифрования
+    secret: 'super-secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60000 * 30 } // Сессия живет 30 минут
+    cookie: { maxAge: 60000 * 30 }
 }));
 
+// ПОДКЛЮЧЕНИЕ К ОБЛАЧНОЙ БАЗЕ
 mongoose.connect('mongodb+srv://vitalikzelenkoplay_db_user:OwVUT6Y46AyJVib1@cluster0.ohmyicg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
     .then(() => console.log('✅ ОБЛАЧНАЯ БАЗА ПОДКЛЮЧЕНА'))
     .catch(err => console.error('❌ Ошибка БД:', err));
 
-// --- СХЕМЫ ---
+// --- ОБНОВЛЕННАЯ СХЕМА ПОЛЬЗОВАТЕЛЯ ---
 const UserSchema = new mongoose.Schema({ 
     email: { type: String, unique: true }, 
     passwordHash: String,
-    isAdmin: { type: Boolean, default: false }
+    isAdmin: { type: Boolean, default: false },
+    telegramId: String // <--- Новое поле для Телеграма
 });
 const User = mongoose.model('User', UserSchema);
 
@@ -54,48 +55,70 @@ const OrderSchema = new mongoose.Schema({
 });
 const Order = mongoose.model('Order', OrderSchema);
 
-// --- 4. API КАПЧИ (Новое!) ---
+// --- API КАПЧИ ---
 app.get('/api/captcha', (req, res) => {
-    const captcha = svgCaptcha.create({
-        size: 4, // 4 символа
-        noise: 2, // Немного шума (линий)
-        color: true,
-        background: '#f0f0f0'
-    });
-    
-    // Запоминаем правильный ответ в сессии пользователя
+    const captcha = svgCaptcha.create({ size: 4, noise: 2, color: true, background: '#f0f0f0' });
     req.session.captcha = captcha.text;
-    
-    // Отправляем картинку
     res.type('svg');
     res.status(200).send(captcha.data);
 });
 
-// --- АВТОРИЗАЦИЯ ---
+// --- ВХОД ЧЕРЕЗ ТЕЛЕГРАМ (НОВОЕ!) ---
+app.get('/api/auth/telegram', async (req, res) => {
+    // Получаем данные от Телеграм
+    const { id, first_name, username } = req.query; 
+
+    // Ищем пользователя по ID
+    let user = await User.findOne({ telegramId: id });
+
+    // Если нет - создаем нового
+    if (!user) {
+        user = new User({
+            telegramId: id,
+            email: username ? `${username}@telegram.com` : `${id}@telegram.com`, // Создаем "фейковую" почту
+            isAdmin: false
+        });
+        await user.save();
+    }
+
+    // Отправляем специальный скрипт, который сохранит вход и перекинет в профиль
+    res.send(`
+        <html>
+        <body>
+            <h1 style="font-family:sans-serif; text-align:center; margin-top:50px;">Вход выполнен! 🚀</h1>
+            <p style="font-family:sans-serif; text-align:center;">Перенаправление...</p>
+            <script>
+                localStorage.setItem('userId', '${user._id}');
+                localStorage.setItem('isAdmin', '${user.isAdmin}');
+                window.location.href = '/profile.html';
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// --- ОБЫЧНАЯ РЕГИСТРАЦИЯ ---
 app.post('/api/register', async (req, res) => {
-    const { email, password, captchaAnswer } = req.body; // Получаем ответ пользователя
+    const { email, password, captchaAnswer } = req.body;
     
-    // 5. ПРОВЕРКА КАПЧИ
     if (!req.session.captcha || req.session.captcha !== captchaAnswer) {
-        return res.status(400).json({ error: 'Неверная капча! Попробуйте еще раз.' });
+        return res.status(400).json({ error: 'Неверная капча!' });
     }
 
     if(await User.findOne({ email })) return res.status(400).json({ error: 'Email занят' });
     
     const hash = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, passwordHash: hash, isAdmin: false });
+    const newUser = new User({ email, passwordHash: hash });
     await newUser.save();
     
-    // После успеха очищаем капчу
     req.session.captcha = null;
-    
     res.json({ success: true, userId: newUser._id, isAdmin: false });
 });
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user || !await bcrypt.compare(password, user.passwordHash)) {
+    if (!user || !user.passwordHash || !await bcrypt.compare(password, user.passwordHash)) {
         return res.status(400).json({ error: 'Неверный логин или пароль' });
     }
     res.json({ success: true, userId: user._id, isAdmin: user.isAdmin });
@@ -118,8 +141,13 @@ app.post('/api/orders', async (req, res) => {
         items: cart
     });
     await newOrder.save();
-    const itemsText = cart.map(i => `▫️ ${i.name}`).join('\n');
-    bot.sendMessage(TG_CHAT_ID, `🔥 Заказ ($${newOrder.total})\n${itemsText}`);
+    
+    // Бот отправляет уведомление
+    try {
+        const itemsText = cart.map(i => `▫️ ${i.name}`).join('\n');
+        bot.sendMessage(TG_CHAT_ID, `🔥 Новый заказ ($${newOrder.total})\n${itemsText}`);
+    } catch(e) { console.log('Ошибка бота', e); }
+
     res.json({ success: true });
 });
 
@@ -140,4 +168,4 @@ app.put('/api/orders/:id/status', async (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(PORT, () => console.log(`🚀 SERVER v9.0 (CAPTCHA) ЗАПУЩЕН`));
+app.listen(PORT, () => console.log(`🚀 SERVER v10.0 ЗАПУЩЕН`));
