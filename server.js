@@ -195,5 +195,45 @@ app.put('/api/orders/:id/status', async (req, res) => {
     await Order.updateOne({ orderId: req.params.id }, { status: status });
     res.json({ success: true });
 });
+// --- ОПЛАТА TELEGRAM STARS (INTEGRATED) --- //
 
+const BOT_TOKEN = '8174786890:AAHYvKO9lDjgkzWMJ1Ed57W2Y1VFbxG4LMo'; 
+
+app.post('/api/create-payment-link', async (req, res) => {
+    const { cart } = req.body;
+
+    // Считаем сумму (1 звезда = 1 доллар для теста)
+    const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
+
+    const invoicePayload = {
+        title: "Заказ iStore",
+        description: `Оплата товаров: ${cart.map(i => i.name).join(', ')}`,
+        payload: `order_${Date.now()}`, // Уникальный ID заказа
+        provider_token: "", // ДЛЯ ЗВЕЗД ЭТО ПОЛЕ ПУСТОЕ!
+        currency: "XTR", // Валюта Telegram Stars
+        prices: [
+            { label: "Сумма заказа", amount: totalAmount } 
+        ]
+    };
+
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(invoicePayload)
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+            res.json({ url: data.result });
+        } else {
+            console.error('Ошибка Telegram:', data);
+            res.status(500).json({ error: 'Ошибка создания ссылки' });
+        }
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
 app.listen(PORT, () => console.log(`🚀 SERVER v11.0 ЗАПУЩЕН`));
