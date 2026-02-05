@@ -2,102 +2,396 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>iStore</title>
+    <title>iStore | Premium Reseller</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* --- ЧАСТЬ III: СЕМИОТИКА И ВИЗУАЛЬНЫЙ ЯЗЫК --- */
         :root {
-            --bg: #f5f5f7; --card-bg: #ffffff; --text: #1d1d1f; --accent: #0071e3;
+            --bg-body: #F5F5F7; /* Светлый серый, не белый */
+            --bg-card: #FFFFFF;
+            --text-main: #1D1D1F;
+            --text-sec: #86868B;
+            --accent: #0071E3; /* Apple Blue */
+            --accent-hover: #0077ED;
+            --danger: #FF3B30;
+            --shadow-sm: 0 4px 6px rgba(0,0,0,0.02);
+            --shadow-hover: 0 20px 40px rgba(0,0,0,0.08);
+            --radius-xl: 24px;
+            --radius-m: 12px;
+            --font-main: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
         }
+
+        /* Темная тема (Нейромаркетинг: снижение нагрузки на глаза) */
         body.dark-mode {
-            --bg: #1c1c1e; --card-bg: #2c2c2e; --text: #f5f5f7; --accent: #0a84ff;
+            --bg-body: #000000;
+            --bg-card: #1C1C1E;
+            --text-main: #F5F5F7;
+            --text-sec: #86868B;
+            --accent: #2997FF;
+            --shadow-sm: 0 4px 6px rgba(0,0,0,0.2);
+            --shadow-hover: 0 20px 40px rgba(0,0,0,0.4);
         }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; transition: 0.3s; }
-        
-        /* ШАПКА */
-        header { background: var(--card-bg); padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        .logo { font-weight: bold; font-size: 24px; color: var(--text); text-decoration: none; margin-right: 20px; }
-        
-        /* Поиск и Фильтры */
-        .controls { flex-grow: 1; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
-        .search-box input { padding: 10px 15px; border-radius: 20px; border: 1px solid #d2d2d7; outline: none; }
-        .filter-btn { background: var(--bg); border: 1px solid #d2d2d7; padding: 8px 15px; border-radius: 15px; cursor: pointer; color: var(--text); white-space: nowrap; }
-        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* Иконки справа */
-        .nav-icons { display: flex; gap: 15px; align-items: center; margin-left: 10px; }
-        .nav-icons a, .theme-btn { text-decoration: none; font-size: 22px; cursor: pointer; position: relative; }
-        .cart-badge { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            transition: background-color 0.4s ease, color 0.4s ease;
+            -webkit-font-smoothing: antialiased; /* Пиксельная четкость */
+        }
 
-        /* ТОВАРЫ */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 20px; padding: 20px; text-align: center; transition: 0.3s; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 380px; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .card img { width: 100%; height: 180px; object-fit: contain; margin-bottom: 15px; }
+        /* --- ЧАСТЬ I: АРХИТЕКТУРА ДОВЕРИЯ (HEADER) --- */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.72); /* Полупрозрачность */
+            backdrop-filter: saturate(180%) blur(20px); /* Эффект матового стекла */
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 0 20px;
+            height: 54px; /* Стандарт Apple */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.4s;
+        }
+        body.dark-mode header {
+            background: rgba(28, 28, 30, 0.72);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 20px;
+            color: var(--text-main);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        /* Контролы и навигация */
+        .nav-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .nav-icon {
+            text-decoration: none;
+            color: var(--text-main);
+            font-size: 18px;
+            position: relative;
+            opacity: 0.8;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .nav-icon:hover { opacity: 1; }
+        .cart-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: var(--danger);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 10px;
+        }
+
+        /* --- ЧАСТЬ VII: МОНТАЖ И НАРРАТИВ (HERO SECTION) --- */
+        .hero {
+            text-align: center;
+            padding: 80px 20px 60px;
+            max-width: 800px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1.5px;
+            margin-bottom: 10px;
+            line-height: 1.1;
+        }
+        .hero p {
+            font-size: 20px;
+            color: var(--text-sec);
+            font-weight: 400;
+            margin-top: 0;
+        }
+
+        /* --- ЧАСТЬ II: КОГНИТИВНАЯ ИНЖЕНЕРИЯ (ФИЛЬТРЫ) --- */
+        .filters-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 20px 40px;
+            overflow-x: auto;
+            -ms-overflow-style: none; /* Скрыть скроллбар */
+            scrollbar-width: none;
+        }
+        .filters-container::-webkit-scrollbar { display: none; }
+
+        .search-wrapper {
+            max-width: 400px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: rgba(0,0,0,0.03);
+            font-size: 15px;
+            color: var(--text-main);
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        .search-input:focus {
+            background: var(--bg-card);
+            box-shadow: 0 0 0 4px rgba(0,113,227,0.15);
+            border-color: var(--accent);
+        }
+
+        .filter-pill {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid transparent;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: var(--shadow-sm);
+            white-space: nowrap;
+        }
+        .filter-pill:hover { transform: scale(1.02); }
+        .filter-pill.active {
+            background: var(--text-main); /* Черный фон для активного */
+            color: var(--bg-body); /* Белый текст */
+        }
+        body.dark-mode .filter-pill.active {
+            background: #F5F5F7;
+            color: black;
+        }
+
+        /* --- ЧАСТЬ IV: МИКРОАРХИТЕКТУРА (СЕТКА ТОВАРОВ) --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px; /* Кратность 8 */
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto 80px;
+        }
+
+        /* Карточка товара - "Контролируемый реализм" */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            padding: 30px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 420px; /* Фиксированная высота для ритма */
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-8px);
+        }
+
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            transition: transform 0.5s ease;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.05));
+        }
+        .card:hover img { transform: scale(1.08); }
+
+        .card h3 {
+            font-size: 21px;
+            font-weight: 600;
+            margin: 10px 0 5px;
+            color: var(--text-main);
+        }
+        .specs {
+            font-size: 13px;
+            color: var(--text-sec);
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
         
+        /* Цена и кнопка - внизу карточки */
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .price {
+            font-size: 19px;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        
+        /* Кнопка "Купить" - Тактильность */
+        .btn-buy {
+            background: var(--accent);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 80%;
+            opacity: 0; /* Скрыта по умолчанию */
+            transform: translateY(10px);
+        }
+        /* Кнопка появляется при наведении на карточку (Нейромаркетинг: вознаграждение за интерес) */
+        .card:hover .btn-buy {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* На мобильных показываем всегда */
+        @media(max-width: 768px) {
+            .btn-buy { opacity: 1; transform: translateY(0); width: 100%; }
+            .hero h1 { font-size: 36px; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+            .card { height: 350px; padding: 20px; }
+            .card img { height: 140px; }
+        }
+
         /* Сердечко */
-        .heart-btn { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; opacity: 0.3; transition: 0.2s; }
-        .heart-btn.liked { opacity: 1; transform: scale(1.2); }
+        .fav-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 22px;
+            cursor: pointer;
+            color: #d1d1d6;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Эффект пружины */
+            background: transparent;
+            border: none;
+            z-index: 2;
+        }
+        .fav-btn.active {
+            color: var(--danger);
+            transform: scale(1.2);
+        }
 
-        .btn { background: var(--accent); color: white; padding: 10px; border-radius: 12px; border: none; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
-        
+        /* Анимации */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Уведомление о правах Админа */
+        .admin-badge {
+            display: none;
+            background: var(--text-main);
+            color: var(--bg-body);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <a href="/" class="logo"></a>
-        
-        <div class="controls">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Поиск..." oninput="applyFilters()">
-            </div>
-            <button class="filter-btn active" onclick="setCategory('all')">Все</button>
-            <button class="filter-btn" onclick="setCategory('iPhone')">iPhone</button>
-            <button class="filter-btn" onclick="setCategory('Mac')">Mac</button>
-            <button class="filter-btn" onclick="setCategory('Watch')">Watch</button>
-            <button class="filter-btn" onclick="toggleFavoritesShow()" id="favFilterBtn">❤️ Любимые</button>
+        <div style="display:flex; align-items:center;">
+            <a href="/" class="logo"> iStore</a>
+            <div id="adminIndicator" class="admin-badge">ADMIN MODE</div>
         </div>
-
-        <div class="nav-icons">
-            <span class="theme-btn" onclick="toggleTheme()">🌗</span>
-            <a href="/profile.html">👤</a>
-            <a href="/cart.html">🛒 <span id="cartCount" class="cart-badge">0</span></a>
+        
+        <div class="nav-right">
+            <span class="nav-icon" onclick="toggleTheme()">🌗</span>
+            <a href="/profile.html" class="nav-icon">👤</a>
+            <a href="/cart.html" class="nav-icon" style="margin-right: 5px;">
+                🛒 <span id="cartCount" class="cart-badge">0</span>
+            </a>
         </div>
     </header>
 
-    <div class="grid" id="products-container">Загрузка...</div>
+    <div class="hero">
+        <h1>Магия технологий.</h1>
+        <p>Лучшие устройства для работы и творчества.</p>
+    </div>
+
+    <div class="search-wrapper">
+        <input type="text" id="searchInput" class="search-input" placeholder="Найти MacBook, iPhone..." oninput="applyFilters()">
+    </div>
+
+    <div class="filters-container">
+        <button class="filter-pill active" onclick="setCategory('all', this)">Все продукты</button>
+        <button class="filter-pill" onclick="setCategory('iPhone', this)">iPhone</button>
+        <button class="filter-pill" onclick="setCategory('Mac', this)">Mac</button>
+        <button class="filter-pill" onclick="setCategory('Watch', this)">Apple Watch</button>
+        <button class="filter-pill" onclick="setCategory('AirPods', this)">AirPods</button>
+        <button class="filter-pill" onclick="toggleFavoritesShow(this)" id="favFilterBtn">❤️ Избранное</button>
+    </div>
+
+    <div class="grid" id="products-container">
+        <h3 style="text-align:center; width:100%; color:gray;">Загрузка коллекции...</h3>
+    </div>
 
 <script>
+    // --- JS LOGIC (МОЗГ САЙТА) ---
+    // Весь старый функционал сохранен, но адаптирован под новый UI
+
     let allProducts = [];
     let currentCategory = 'all';
     let showOnlyFavorites = false;
 
-    // 1. ЗАГРУЗКА
+    // 1. ИНИЦИАЛИЗАЦИЯ
     async function load() {
-        // Темная тема
+        // Проверка темы
         if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+        
+        // Проверка Админа
+        if(localStorage.getItem('isAdmin') === 'true') {
+            document.getElementById('adminIndicator').style.display = 'block';
+        }
+
         updateCartCount();
 
-        // Товары
+        // Загрузка данных с сервера
         try {
             const res = await fetch('https://istore-i9oo.onrender.com/api/products');
+            if(!res.ok) throw new Error("Ошибка сети");
             allProducts = await res.json();
             applyFilters();
-        } catch(e) { console.error(e); }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('products-container').innerHTML = 
+                "<h3 style='text-align:center; width:100%'>Сервер не отвечает. Проверьте Render.</h3>";
+        }
     }
 
-    // 2. ФИЛЬТРАЦИЯ И ОТРИСОВКА
+    // 2. РЕНДЕРИНГ (ОТРИСОВКА)
     function applyFilters() {
         const query = document.getElementById('searchInput').value.toLowerCase();
         const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
 
         const filtered = allProducts.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(query);
-            // Фильтр по категории (просто ищем слово в названии)
+            const matchesSearch = p.name.toLowerCase().includes(query) || (p.specs && p.specs.toLowerCase().includes(query));
             const matchesCategory = currentCategory === 'all' || p.name.includes(currentCategory);
-            // Фильтр по избранному
             const matchesFav = !showOnlyFavorites || favorites.includes(p.id);
-
             return matchesSearch && matchesCategory && matchesFav;
         });
 
@@ -109,46 +403,56 @@
         const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
 
         if(products.length === 0) {
-            container.innerHTML = "<h3>Ничего не найдено 😢</h3>";
+            container.innerHTML = "<div style='grid-column: 1/-1; text-align:center; padding: 40px; color:var(--text-sec);'>Продукты не найдены 🍃</div>";
             return;
         }
 
-        container.innerHTML = products.map(p => `
-            <div class="card">
-                <div class="heart-btn ${favorites.includes(p.id) ? 'liked' : ''}" onclick="toggleHeart(${p.id})">❤️</div>
-                <img src="${p.img}" alt="${p.name}">
+        container.innerHTML = products.map((p, index) => `
+            <div class="card" style="animation: fadeInUp 0.5s ease-out ${index * 0.05}s backwards;">
+                <button class="fav-btn ${favorites.includes(p.id) ? 'active' : ''}" onclick="toggleHeart(${p.id})">
+                    ${favorites.includes(p.id) ? '♥' : '♡'}
+                </button>
+                
+                <img src="${p.img}" alt="${p.name}" loading="lazy">
+                
                 <div>
                     <h3>${p.name}</h3>
-                    <div style="color:gray; font-size:12px;">${p.specs || ''}</div>
-                    <div style="font-size:18px; margin:10px 0;"><b>$${p.price}</b></div>
-                    <button class="btn" onclick="addToCart(${p.id}, '${p.name}', ${p.price})">В корзину</button>
+                    <div class="specs">${p.specs || 'Premium Quality'}</div>
+                </div>
+
+                <div class="card-footer">
+                    <div class="price">$${p.price}</div>
+                    <button class="btn-buy" onclick="addToCart(${p.id}, '${p.name}', ${p.price}, this)">В корзину</button>
                 </div>
             </div>
         `).join('');
     }
 
-    // 3. УПРАВЛЕНИЕ (Категории, Лайки, Тема)
-    function setCategory(cat) {
+    // 3. УПРАВЛЕНИЕ (ИНТЕРАКТИВ)
+    function setCategory(cat, btnElement) {
         currentCategory = cat;
-        showOnlyFavorites = false; // Сбрасываем фильтр любимых
+        showOnlyFavorites = false;
         document.getElementById('favFilterBtn').classList.remove('active');
         
-        // Подсветка кнопок
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
+        // Переключаем активный класс кнопок
+        document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+        if(btnElement) btnElement.classList.add('active');
         
         applyFilters();
     }
 
-    function toggleFavoritesShow() {
+    function toggleFavoritesShow(btnElement) {
         showOnlyFavorites = !showOnlyFavorites;
-        const btn = document.getElementById('favFilterBtn');
         if(showOnlyFavorites) {
-            btn.classList.add('active');
-            btn.innerText = "❤️ Только любимые";
+            // Сброс категорий при просмотре избранного
+            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            btnElement.innerText = "❤️ Только любимые";
         } else {
-            btn.classList.remove('active');
-            btn.innerText = "❤️ Любимые";
+            btnElement.classList.remove('active');
+            btnElement.innerText = "❤️ Избранное";
+            document.querySelector('.filter-pill').classList.add('active'); // Вернуть на 'Все'
+            currentCategory = 'all';
         }
         applyFilters();
     }
@@ -156,12 +460,12 @@
     function toggleHeart(id) {
         let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
         if(favorites.includes(id)) {
-            favorites = favorites.filter(fid => fid !== id); // Удалить
+            favorites = favorites.filter(fid => fid !== id);
         } else {
-            favorites.push(id); // Добавить
+            favorites.push(id);
         }
         localStorage.setItem('favorites', JSON.stringify(favorites));
-        applyFilters(); // Перерисовать (чтобы сердечко загорелось)
+        applyFilters();
     }
 
     function toggleTheme() {
@@ -169,18 +473,24 @@
         localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
     }
 
-    // 4. КОРЗИНА
-    function addToCart(id, name, price) {
+    function addToCart(id, name, price, btn) {
+        // Эффект нажатия (тактильность)
+        btn.style.transform = "scale(0.95)";
+        setTimeout(() => btn.style.transform = "scale(1)", 150);
+
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         cart.push({ id, name, price });
         localStorage.setItem('cart', JSON.stringify(cart));
         updateCartCount();
         
-        // Анимация кнопки
-        const btn = event.target;
-        btn.style.background = "#34c759";
-        btn.innerText = "Добавлено! ✅";
-        setTimeout(() => { btn.style.background = ""; btn.innerText = "В корзину"; }, 1000);
+        // Визуальное подтверждение
+        const oldText = btn.innerText;
+        btn.innerText = "Готово ✓";
+        btn.style.background = "#34c759"; // Green
+        setTimeout(() => {
+            btn.innerText = oldText;
+            btn.style.background = ""; // Reset
+        }, 1500);
     }
 
     function updateCartCount() {
@@ -188,7 +498,9 @@
         document.getElementById('cartCount').innerText = cart.length;
     }
 
+    // Старт
     load();
 </script>
+
 </body>
 </html>
