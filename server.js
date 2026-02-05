@@ -1,4 +1,4 @@
-/* iStore Server v10.0 - TELEGRAM EDITION ✈️ */
+/* iStore Server v11.0 - FINAL STABLE 🛠️ */
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -12,15 +12,16 @@ const svgCaptcha = require('svg-captcha');
 const app = express();
 const PORT = 3000;
 
+// Твои ключи
 const TG_TOKEN = '8554713425:AAHeYxVZhwsku1ZinG1Z8WwzlfE5hFiMCnc'; 
 const TG_CHAT_ID = '1599391998';
-const bot = new TelegramBot(TG_TOKEN, {polling: false}); // polling: false, чтобы не конфликтовал с Render
+const bot = new TelegramBot(TG_TOKEN, {polling: false}); // polling выключен для Render
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname)));
 
-// Настройка сессий
+// Настройка сессий (память сервера)
 app.use(session({
     secret: 'super-secret-key',
     resave: false,
@@ -28,17 +29,17 @@ app.use(session({
     cookie: { maxAge: 60000 * 30 }
 }));
 
-// ПОДКЛЮЧЕНИЕ К ОБЛАЧНОЙ БАЗЕ
+// ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ
 mongoose.connect('mongodb+srv://vitalikzelenkoplay_db_user:OwVUT6Y46AyJVib1@cluster0.ohmyicg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
     .then(() => console.log('✅ ОБЛАЧНАЯ БАЗА ПОДКЛЮЧЕНА'))
     .catch(err => console.error('❌ Ошибка БД:', err));
 
-// --- ОБНОВЛЕННАЯ СХЕМА ПОЛЬЗОВАТЕЛЯ ---
+// --- СХЕМЫ ---
 const UserSchema = new mongoose.Schema({ 
     email: { type: String, unique: true }, 
     passwordHash: String,
     isAdmin: { type: Boolean, default: false },
-    telegramId: String // <--- Новое поле для Телеграма
+    telegramId: String
 });
 const User = mongoose.model('User', UserSchema);
 
@@ -63,38 +64,67 @@ app.get('/api/captcha', (req, res) => {
     res.status(200).send(captcha.data);
 });
 
-// --- ВХОД ЧЕРЕЗ ТЕЛЕГРАМ (НОВОЕ!) ---
+// --- ВХОД ЧЕРЕЗ ТЕЛЕГРАМ (ИСПРАВЛЕННЫЙ) ---
 app.get('/api/auth/telegram', async (req, res) => {
-    // Получаем данные от Телеграм
-    const { id, first_name, username } = req.query; 
+    try {
+        const { id, first_name, username } = req.query; 
+        
+        if (!id) return res.send("Ошибка: Нет ID от Telegram");
 
-    // Ищем пользователя по ID
-    let user = await User.findOne({ telegramId: id });
+        // Ищем или создаем пользователя
+        let user = await User.findOne({ telegramId: id });
+        if (!user) {
+            user = new User({
+                telegramId: id,
+                email: username ? `${username}@telegram.com` : `${id}@telegram.com`,
+                isAdmin: false
+            });
+            await user.save();
+        }
 
-    // Если нет - создаем нового
-    if (!user) {
-        user = new User({
-            telegramId: id,
-            email: username ? `${username}@telegram.com` : `${id}@telegram.com`, // Создаем "фейковую" почту
-            isAdmin: false
-        });
-        await user.save();
+        // Отправляем страницу с кнопкой (чтобы избежать белого экрана)
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Вход выполнен</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f2f2f7; margin: 0; text-align: center;}
+                    .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+                    .btn { display: inline-block; background: #0071e3; color: white; padding: 15px 30px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 18px; margin-top: 20px; transition: 0.2s; }
+                    .btn:hover { background: #005bb5; }
+                    h1 { color: #1d1d1f; margin-bottom: 10px; }
+                    p { color: #86868b; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1>✅ Вход разрешен!</h1>
+                    <p>Добро пожаловать, ${first_name || 'Пользователь'}!</p>
+                    <p>Нажмите кнопку ниже, чтобы продолжить:</p>
+                    
+                    <a href="/profile.html" class="btn" id="loginBtn">ПЕРЕЙТИ В МАГАЗИН &rarr;</a>
+                </div>
+
+                <script>
+                    // 1. Сохраняем ключи доступа
+                    localStorage.setItem('userId', '${user._id}');
+                    localStorage.setItem('isAdmin', '${user.isAdmin}');
+                    
+                    // 2. Пытаемся перейти автоматически через 1.5 секунды
+                    setTimeout(() => {
+                        window.location.href = '/profile.html';
+                    }, 1500);
+                </script>
+            </body>
+            </html>
+        `);
+    } catch (e) {
+        console.error(e);
+        res.send("Ошибка сервера: " + e.message);
     }
-
-    // Отправляем специальный скрипт, который сохранит вход и перекинет в профиль
-    res.send(`
-        <html>
-        <body>
-            <h1 style="font-family:sans-serif; text-align:center; margin-top:50px;">Вход выполнен! 🚀</h1>
-            <p style="font-family:sans-serif; text-align:center;">Перенаправление...</p>
-            <script>
-                localStorage.setItem('userId', '${user._id}');
-                localStorage.setItem('isAdmin', '${user.isAdmin}');
-                window.location.href = '/profile.html';
-            </script>
-        </body>
-        </html>
-    `);
 });
 
 // --- ОБЫЧНАЯ РЕГИСТРАЦИЯ ---
@@ -124,13 +154,12 @@ app.post('/api/login', async (req, res) => {
     res.json({ success: true, userId: user._id, isAdmin: user.isAdmin });
 });
 
-// --- API ПРОДУКТОВ ---
+// --- ПРОДУКТЫ И ЗАКАЗЫ ---
 app.get('/api/products', async (req, res) => { res.json(await Product.find()); });
 app.post('/api/products', async (req, res) => { await new Product({ id: Date.now(), ...req.body }).save(); res.json({ success: true }); });
 app.delete('/api/products/:id', async (req, res) => { await Product.deleteOne({ id: Number(req.params.id) }); res.json({ success: true }); });
 app.put('/api/products/:id', async (req, res) => { await Product.updateOne({ id: Number(req.params.id) }, req.body); res.json({ success: true }); });
 
-// --- API ЗАКАЗОВ ---
 app.post('/api/orders', async (req, res) => {
     const { cart, userId } = req.body;
     const newOrder = new Order({
@@ -142,7 +171,6 @@ app.post('/api/orders', async (req, res) => {
     });
     await newOrder.save();
     
-    // Бот отправляет уведомление
     try {
         const itemsText = cart.map(i => `▫️ ${i.name}`).join('\n');
         bot.sendMessage(TG_CHAT_ID, `🔥 Новый заказ ($${newOrder.total})\n${itemsText}`);
@@ -168,4 +196,4 @@ app.put('/api/orders/:id/status', async (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(PORT, () => console.log(`🚀 SERVER v10.0 ЗАПУЩЕН`));
+app.listen(PORT, () => console.log(`🚀 SERVER v11.0 ЗАПУЩЕН`));
