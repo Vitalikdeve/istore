@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>iStore Admin Pro</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f2f2f7; padding: 40px; color: #1c1c1e; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e5e5ea; border-radius: 10px; box-sizing: border-box; }
+        .row { display: flex; gap: 10px; }
+        
+        .btn { border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-add { background: #0071e3; width: 100%; }
+        .btn-del { background: #ff3b30; font-size: 12px; padding: 5px 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        td { padding: 15px 0; border-bottom: 1px solid #e5e5ea; vertical-align: middle; }
+        img.thumb { width: 50px; height: 50px; object-fit: contain; border-radius: 5px; border: 1px solid #eee; }
+        
+        /* Стиль для выбора статуса */
+        select.status-select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center">
+        <h1>🔐 Кабинет Босса</h1>
+        <button onclick="logout()" style="background:#eee; color:black; border:none; padding:10px 20px; border-radius:10px; cursor:pointer">Выйти</button>
+    </div>
+
+    <div class="card" style="border: 2px solid #0071e3;">
+        <h2>✨ Управление товарами</h2>
+        <div class="row">
+            <input type="text" id="pName" placeholder="Название">
+            <input type="text" id="pSpecs" placeholder="Конфигурация">
+        </div>
+        <div class="row">
+            <input type="number" id="pPrice" placeholder="Цена">
+            <input type="text" id="pImg" placeholder="Фото">
+        </div>
+        <button class="btn btn-add" onclick="saveProduct()">Добавить / Обновить</button>
+        
+        <details style="margin-top:20px; cursor:pointer;">
+            <summary>Показать список товаров</summary>
+            <table><tbody id="productsTable"></tbody></table>
+        </details>
+    </div>
+
+    <div class="card">
+        <h2>📦 Управление заказами</h2>
+        <table>
+            <thead>
+                <tr style="text-align:left; color:#888;">
+                    <th>ID</th>
+                    <th>Клиент</th>
+                    <th>Товары</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody id="ordersList"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // 1. ПРОВЕРКА ВХОДА
+    const userId = localStorage.getItem('userId');
+    const isAdmin = localStorage.getItem('isAdmin');
+
+    // Если не вошел или не админ - выкидываем
+    if (!userId || isAdmin !== 'true') {
+        window.location.href = '/login.html';
+    }
+
+    // 2. ЗАГРУЗКА
+    async function loadData() {
+        // Товары
+        const resP = await fetch('/api/products');
+        const products = await resP.json();
+        document.getElementById('productsTable').innerHTML = products.map(p => `
+            <tr>
+                <td><img src="${p.img}" class="thumb"></td>
+                <td><b>${p.name}</b></td>
+                <td>$${p.price}</td>
+                <td><button class="btn btn-del" onclick="deleteProduct(${p.id})">🗑</button></td>
+            </tr>
+        `).join('');
+
+        // Заказы (ЗАПРАШИВАЕМ У API)
+        const resO = await fetch('/api/admin/orders');
+        const orders = await resO.json();
+
+        document.getElementById('ordersList').innerHTML = orders.reverse().map(o => `
+            <tr>
+                <td>#${o.orderId.split('-')[1]}</td>
+                <td style="font-size:12px; color:#555;">${o.userId === 'guest' ? 'Гость' : 'Клиент'}</td>
+                <td>${o.items.map(i => i.name).join(', ')}</td>
+                <td><b>$${o.total}</b></td>
+                <td>
+                    <select class="status-select" onchange="changeStatus('${o.orderId}', this.value)" style="background: ${getStatusColor(o.status)}">
+                        <option value="В обработке 🕒" ${o.status.includes('обработке') ? 'selected' : ''}>В обработке 🕒</option>
+                        <option value="Отправлен 🚚" ${o.status.includes('Отправлен') ? 'selected' : ''}>Отправлен 🚚</option>
+                        <option value="Доставлен ✅" ${o.status.includes('Доставлен') ? 'selected' : ''}>Доставлен ✅</option>
+                        <option value="Отменен ❌" ${o.status.includes('Отменен') ? 'selected' : ''}>Отменен ❌</option>
+                    </select>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 3. СМЕНА СТАТУСА
+    async function changeStatus(orderId, newStatus) {
+        await fetch('/api/orders/' + orderId + '/status', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: newStatus })
+        });
+        // Перезагружаем таблицу, чтобы обновился цвет
+        loadData();
+    }
+
+    function getStatusColor(status) {
+        if(status.includes('Отправлен')) return '#ffcc00'; // Желтый
+        if(status.includes('Доставлен')) return '#34c759'; // Зеленый
+        if(status.includes('Отменен')) return '#ff3b30';   // Красный
+        return '#fff'; // Белый
+    }
+
+    // (Остальные функции: saveProduct, deleteProduct те же)
+    async function saveProduct() {
+        const data = {
+            name: document.getElementById('pName').value,
+            price: document.getElementById('pPrice').value,
+            img: document.getElementById('pImg').value,
+            specs: document.getElementById('pSpecs').value
+        };
+        await fetch('/api/products', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        loadData();
+    }
+    
+    async function deleteProduct(id) {
+        if(confirm('Удалить?')) { await fetch('/api/products/'+id, {method:'DELETE'}); loadData(); }
+    }
+
+    function logout() { localStorage.clear(); window.location.href = '/login.html'; }
+
+    loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iStore 8.0</title>
+<style>
+    body { font-family: -apple-system, sans-serif; background: #f5f5f7; padding: 40px; }
+    .nav { text-align: right; margin-bottom: 20px; }
+    .btn-nav { text-decoration: none; color: #0071e3; font-weight: bold; margin-left: 20px; font-size: 18px; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .card { background: white; padding: 20px; border-radius: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .card img { width: 100%; height: 200px; object-fit: contain; }
+    button { background: #0071e3; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; margin-top: 10px;}
+</style>
+</head>
+<body>
+
+    <div class="nav">
+        <span id="userLink"></span>
+        <a href="/" class="btn-nav">Магазин</a>
+    </div>
+
+    <h1 style="text-align:center"> iStore</h1>
+    <div id="grid" class="grid"></div>
+
+<script>
+    // Проверяем, вошел ли пользователь
+    const userId = localStorage.getItem('userId');
+    const userLink = document.getElementById('userLink');
+    
+    if (userId) {
+        userLink.innerHTML = `<a href="/profile.html" class="btn-nav">👤 Личный кабинет</a>`;
+    } else {
+        userLink.innerHTML = `<a href="/login.html" class="btn-nav">Войти</a>`;
+    }
+
+    // Загрузка товаров
+    fetch('/api/products').then(r => r.json()).then(products => {
+        document.getElementById('grid').innerHTML = products.map(p => `
+            <div class="card">
+                <img src="${p.img}">
+                <h3>${p.name}</h3>
+                <div style="color:#888">${p.specs||''}</div>
+                <b>$${p.price}</b><br>
+                <button onclick="buy('${p.name}', ${p.price})">Купить</button>
+            </div>
+        `).join('');
+    });
+
+    async function buy(name, price) {
+        if (!userId) {
+            if(confirm("Чтобы отслеживать заказ, нужно войти. Войти сейчас?")) {
+                window.location.href = '/login.html';
+                return;
+            }
+        }
+
+        await fetch('/api/orders', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                cart: [{ name, price }],
+                userId: userId // <-- ВАЖНО: Отправляем ID покупателя
+            })
+        });
+        alert("✅ Заказ оформлен!");
+    }
+</script>
+</body>
+</html>

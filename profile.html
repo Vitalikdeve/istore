@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мой профиль</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f5f5f7; padding: 40px; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .status { padding: 5px 10px; border-radius: 10px; font-weight: bold; font-size: 14px; background: #e5e5ea;}
+        .status.done { background: #34c759; color: white; }
+        .btn { padding: 10px 20px; border-radius: 10px; text-decoration: none; background: #0071e3; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>👤 Мои заказы</h1>
+        <div>
+            <a href="/" class="btn" style="background: white; color: black;">В магазин</a>
+            <button onclick="logout()" class="btn" style="background: #ff3b30;">Выйти</button>
+        </div>
+    </div>
+
+    <div id="orders">Загрузка...</div>
+
+<script>
+    const userId = localStorage.getItem('userId');
+    if(!userId) window.location.href = '/login.html';
+
+    async function loadOrders() {
+        // Запрашиваем заказы СВОЕГО user id
+        const res = await fetch('/api/my-orders', { headers: { 'userid': userId } });
+        const orders = await res.json();
+
+        if(orders.length === 0) {
+            document.getElementById('orders').innerHTML = '<p>Пока нет заказов.</p>';
+            return;
+        }
+
+        document.getElementById('orders').innerHTML = orders.reverse().map(o => `
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <b>Заказ #${o.orderId.split('-')[1]}</b>
+                    <span class="status ${o.status.includes('Доставлен') ? 'done' : ''}">${o.status}</span>
+                </div>
+                <div>${o.items.map(i => i.name).join(', ')}</div>
+                <h3 style="margin: 10px 0 0 0;">$${o.total}</h3>
+            </div>
+        `).join('');
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = '/login.html';
+    }
+
+    loadOrders();
+</script>
+</body>
+</html>
