@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Корзина</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f5f5f7; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        h1 { margin-top: 0; }
+        .empty-msg { text-align: center; color: #86868b; margin: 50px 0; }
+        
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .cart-item b { font-size: 16px; }
+        .del-btn { color: #ff3b30; cursor: pointer; font-size: 20px; border: none; background: none; }
+
+        .total { font-size: 20px; font-weight: bold; margin-top: 20px; text-align: right; }
+        
+        .checkout-btn { width: 100%; padding: 15px; background: #0071e3; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .checkout-btn:hover { background: #005bb5; }
+        .back-link { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #86868b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛒 Ваша корзина</h1>
+    
+    <div id="cartList"></div>
+    
+    <div id="summary" style="display:none;">
+        <div class="total">Итого: $<span id="totalPrice">0</span></div>
+        <button class="checkout-btn" onclick="checkout()">Оформить заказ ✅</button>
+    </div>
+
+    <a href="/" class="back-link">← Вернуться в магазин</a>
+</div>
+
+<script>
+    // 1. ЗАГРУЗКА КОРЗИНЫ
+    function loadCart() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const container = document.getElementById('cartList');
+        const summary = document.getElementById('summary');
+
+        if(cart.length === 0) {
+            container.innerHTML = "<div class='empty-msg'>Корзина пуста 🍃<br>Добавьте что-нибудь вкусненькое!</div>";
+            summary.style.display = "none";
+            return;
+        }
+
+        summary.style.display = "block";
+        let total = 0;
+
+        container.innerHTML = cart.map((item, index) => {
+            total += item.price;
+            return `
+                <div class="cart-item">
+                    <div>
+                        <b>${item.name}</b><br>
+                        $${item.price}
+                    </div>
+                    <button class="del-btn" onclick="removeItem(${index})">🗑</button>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('totalPrice').innerText = total;
+    }
+
+    // 2. УДАЛЕНИЕ ТОВАРА
+    function removeItem(index) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        cart.splice(index, 1); // Удаляем 1 элемент по индексу
+        localStorage.setItem('cart', JSON.stringify(cart));
+        loadCart(); // Перерисовываем
+    }
+
+    // 3. ОФОРМЛЕНИЕ ЗАКАЗА
+    async function checkout() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const userId = localStorage.getItem('userId');
+
+        if(cart.length === 0) return alert("Корзина пуста!");
+
+        const btn = document.querySelector('.checkout-btn');
+        btn.innerText = "Оформляем...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('https://istore-i9oo.onrender.com/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart, userId })
+            });
+
+            if(res.ok) {
+                localStorage.removeItem('cart'); // Очистить корзину
+                document.getElementById('cartList').innerHTML = `
+                    <div style="text-align:center; padding:40px;">
+                        <h2 style="color:#34c759;">Спасибо за заказ! 🎉</h2>
+                        <p>Менеджер скоро с вами свяжется.</p>
+                    </div>
+                `;
+                document.getElementById('summary').style.display = "none";
+            } else {
+                alert("Ошибка оформления :(");
+                btn.innerText = "Попробовать снова";
+                btn.disabled = false;
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Ошибка сети");
+            btn.disabled = false;
+        }
+    }
+
+    loadCart();
+</script>
+
+</body>
+</html>
