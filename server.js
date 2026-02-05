@@ -29,8 +29,8 @@ app.use(session({
     cookie: { maxAge: 60000 * 30 } // Сессия живет 30 минут
 }));
 
-mongoose.connect('mongodb://127.0.0.1:27017/istore')
-    .then(() => console.log('✅ БД ПОДКЛЮЧЕНА'))
+mongoose.connect('mongodb+srv://vitalikzelenkoplay_db_user:OwVUT6Y46AyJVib1@cluster0.ohmyicg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+    .then(() => console.log('✅ ОБЛАЧНАЯ БАЗА ПОДКЛЮЧЕНА'))
     .catch(err => console.error('❌ Ошибка БД:', err));
 
 // --- СХЕМЫ ---
