@@ -2,42 +2,66 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Вход / Регистрация</title>
+    <title>Вход в iStore</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         .card { background: white; padding: 40px; border-radius: 20px; width: 320px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #ddd; box-sizing: border-box;}
-        button { width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        h2 { margin-top: 0; margin-bottom: 20px; color: #1d1d1f; }
+        
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #d2d2d7; box-sizing: border-box; font-size: 16px; transition: border-color 0.2s; }
+        input:focus { outline: none; border-color: #0071e3; }
+        
+        button { width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        
         .btn-login { background: #0071e3; color: white; }
         .btn-reg { background: #34c759; color: white; }
-        h2 { margin-top: 0; }
         
         /* Скрытый блок капчи */
-        #captcha-block { display: none; margin-top: 10px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
+        #captcha-block { display: none; margin-top: 10px; background: #f5f5f7; padding: 10px; border-radius: 10px; }
         .captcha-img { border-radius: 5px; cursor: pointer; margin-bottom: 5px; width: 100%; }
-        small { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
+        small { color: #86868b; font-size: 12px; display: block; margin-bottom: 5px; }
+
+        /* Переключатель вкладок */
+        .tabs { margin-bottom: 25px; font-size: 14px; display: flex; justify-content: center; gap: 15px; }
+        .tab { cursor: pointer; padding-bottom: 5px; color: #86868b; }
+        .tab.active { color: #0071e3; font-weight: bold; border-bottom: 2px solid #0071e3; }
+
+        /* Ошибки */
+        #msg { color: #ff3b30; margin-top: 15px; font-size: 14px; min-height: 20px; }
     </style>
 </head>
 <body>
+
     <div class="card">
         <h2 id="title">Вход</h2>
         
-        <div style="margin-bottom: 20px; font-size: 14px;">
-            <span id="tabLogin" onclick="switchTab('login')" style="font-weight:bold; cursor:pointer; color:#0071e3">Войти</span> | 
-            <span id="tabReg" onclick="switchTab('reg')" style="cursor:pointer; color:#888">Регистрация</span>
+        <div class="tabs">
+            <span id="tabLogin" class="tab active" onclick="switchTab('login')">Войти</span>
+            <span id="tabReg" class="tab" onclick="switchTab('reg')">Регистрация</span>
         </div>
 
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="pass" placeholder="Пароль">
         
+        <div id="tg-login-block" style="margin: 15px 0;">
+            <script async src="https://telegram.org/js/telegram-widget.js?22" 
+                    data-telegram-login="istore_auth_bot" 
+                    data-size="large" 
+                    data-radius="10" 
+                    data-auth-url="https://istore-i9oo.onrender.com/api/auth/telegram">
+            </script>
+        </div>
+
         <div id="captcha-block">
             <small>Нажмите на картинку, чтобы обновить</small>
-            <div id="svg-container" onclick="loadCaptcha()"></div>
-            <input type="text" id="captchaInput" placeholder="Введите код с картинки">
+            <div id="svg-container" onclick="loadCaptcha()" style="cursor: pointer;"></div>
+            <input type="text" id="captchaInput" placeholder="Введите код с картинки" style="margin-top: 5px;">
         </div>
 
         <button id="mainBtn" class="btn-login" onclick="submitForm()">Войти</button>
-        <p id="msg" style="color:red; margin-top:10px;"></p>
+        <div id="msg"></div>
     </div>
 
 <script>
@@ -47,33 +71,37 @@
         currentMode = mode;
         const btn = document.getElementById('mainBtn');
         const captchaBlock = document.getElementById('captcha-block');
+        const tgBlock = document.getElementById('tg-login-block');
         const title = document.getElementById('title');
         
         // Меняем стили вкладок
-        document.getElementById('tabLogin').style.color = mode === 'login' ? '#0071e3' : '#888';
-        document.getElementById('tabLogin').style.fontWeight = mode === 'login' ? 'bold' : 'normal';
-        document.getElementById('tabReg').style.color = mode === 'reg' ? '#0071e3' : '#888';
-        document.getElementById('tabReg').style.fontWeight = mode === 'reg' ? 'bold' : 'normal';
+        document.getElementById('tabLogin').className = mode === 'login' ? 'tab active' : 'tab';
+        document.getElementById('tabReg').className = mode === 'reg' ? 'tab active' : 'tab';
 
         if (mode === 'login') {
             title.innerText = "Вход";
             btn.innerText = "Войти";
             btn.className = "btn-login";
             captchaBlock.style.display = 'none';
+            tgBlock.style.display = 'block'; // Показываем Телеграм
         } else {
             title.innerText = "Регистрация";
             btn.innerText = "Создать аккаунт";
             btn.className = "btn-reg";
             captchaBlock.style.display = 'block';
-            loadCaptcha(); // Загружаем картинку
+            tgBlock.style.display = 'none'; // Скрываем Телеграм при регистрации
+            loadCaptcha(); 
         }
+        document.getElementById('msg').innerText = "";
     }
 
     // Загрузка картинки с сервера
     async function loadCaptcha() {
-        const res = await fetch('/api/captcha');
-        const svg = await res.text();
-        document.getElementById('svg-container').innerHTML = svg;
+        try {
+            const res = await fetch('https://istore-i9oo.onrender.com/api/captcha');
+            const svg = await res.text();
+            document.getElementById('svg-container').innerHTML = svg;
+        } catch (e) { console.error('Ошибка капчи', e); }
     }
 
     async function submitForm() {
@@ -82,12 +110,13 @@
         const captchaAnswer = document.getElementById('captchaInput').value;
         const msg = document.getElementById('msg');
         
-        msg.innerText = "";
+        msg.innerText = "Загрузка...";
         
-        const url = currentMode === 'login' ? '/api/login' : '/api/register';
+        // ВАЖНО: Используем адрес твоего сайта в Интернете
+        const baseUrl = 'https://istore-i9oo.onrender.com';
+        const url = currentMode === 'login' ? `${baseUrl}/api/login` : `${baseUrl}/api/register`;
+        
         const body = { email, password };
-        
-        // Если регистрация - добавляем ответ на капчу
         if (currentMode === 'reg') {
             body.captchaAnswer = captchaAnswer;
         }
@@ -103,14 +132,16 @@
             if (data.success) {
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('isAdmin', data.isAdmin);
+                // Если админ - перекидываем в админку, иначе в профиль
                 if (data.isAdmin) window.location.href = '/admin.html';
                 else window.location.href = '/profile.html';
             } else {
-                msg.innerText = data.error;
-                // Если ошибка в капче - обновляем её
+                msg.innerText = data.error || "Ошибка";
                 if (currentMode === 'reg') loadCaptcha();
             }
-        } catch (e) { alert('Ошибка сервера'); }
+        } catch (e) { 
+            msg.innerText = 'Ошибка соединения с сервером'; 
+        }
     }
 </script>
 </body>
