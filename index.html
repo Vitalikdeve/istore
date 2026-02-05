@@ -3,93 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <title>iStore | Ultimate</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#F5F5F7">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* --- DESIGN TOKENS --- */
         :root {
-            --bg-body: #F5F5F7; --bg-card: #FFFFFF; --bg-glass: rgba(255, 255, 255, 0.65);
+            --bg-body: #F5F5F7; --bg-card: #FFFFFF; --bg-glass: rgba(255, 255, 255, 0.85);
             --text-main: #1D1D1F; --text-sec: #86868B;
             --accent: #0071E3; --danger: #FF3B30;
             --radius-xl: 24px; --radius-m: 16px;
+            --shadow-sm: 0 4px 6px rgba(0,0,0,0.04);
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
             --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         body.dark-mode {
-            --bg-body: #000000; --bg-card: #1C1C1E; --bg-glass: rgba(28, 28, 30, 0.65);
+            --bg-body: #000000; --bg-card: #1C1C1E; --bg-glass: rgba(28, 28, 30, 0.85);
             --text-main: #F5F5F7; --text-sec: #86868B; --accent: #2997FF;
+            --shadow-sm: 0 4px 6px rgba(0,0,0,0.3);
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.5);
         }
-        body { font-family: "Inter", sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; transition: 0.4s; }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: "Inter", -apple-system, sans-serif; 
+            background: var(--bg-body); color: var(--text-main); 
+            margin: 0; padding-bottom: 80px; /* Отступ для чата на мобилках */
+            transition: background 0.4s, color 0.4s;
+            overflow-x: hidden; 
+        }
 
         /* HEADER */
-        header { position: sticky; top: 0; z-index: 1000; background: var(--bg-glass); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(128,128,128,0.1); height: 52px; display: flex; align-items: center; justify-content: center; }
-        .nav-container { width: 100%; max-width: 1100px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-weight: 600; font-size: 18px; color: var(--text-main); text-decoration: none; }
-        .nav-icons { display: flex; gap: 20px; cursor: pointer; }
+        header { 
+            position: sticky; top: 0; z-index: 1000; 
+            background: var(--bg-glass); backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(128,128,128,0.1); 
+            height: 56px; display: flex; align-items: center; justify-content: center; 
+        }
+        .nav-container { width: 100%; max-width: 1200px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: 700; font-size: 20px; color: var(--text-main); text-decoration: none; letter-spacing: -0.5px; }
+        .nav-icons { display: flex; gap: 16px; cursor: pointer; font-size: 20px; }
 
-        /* FEATURED & GRID */
-        .featured-section { padding: 40px 0; max-width: 1200px; margin: 0 auto; overflow: hidden; }
-        .horizontal-scroll { display: flex; gap: 20px; overflow-x: auto; padding: 10px 20px 40px; scrollbar-width: none; }
-        .feat-card { min-width: 280px; height: 360px; background: var(--bg-card); border-radius: var(--radius-xl); padding: 20px; position: relative; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: 0.4s var(--ease); cursor: pointer; }
-        .feat-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
-        .feat-img { width: 100%; height: 200px; object-fit: contain; }
-        .badge-new { position: absolute; top: 20px; left: 20px; background: var(--accent); color: white; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+        /* SEARCH */
+        .search-area { padding: 16px; display: flex; justify-content: center; position: sticky; top: 56px; z-index: 900; background: var(--bg-body); }
+        .search-input { 
+            width: 100%; max-width: 600px; padding: 14px 20px; 
+            border-radius: 30px; border: 1px solid rgba(0,0,0,0.1); 
+            background: var(--bg-card); color: var(--text-main);
+            outline: none; font-size: 16px; box-shadow: var(--shadow-sm); 
+            transition: 0.3s;
+        }
+        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,113,227,0.15); }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto 100px; padding: 0 20px; }
-        .card { background: var(--bg-card); border-radius: var(--radius-m); padding: 24px; text-align: center; transition: 0.3s; cursor: pointer; position: relative; height: 400px; display: flex; flex-direction: column; }
-        .card:hover { transform: scale(1.02); box-shadow: var(--shadow-lg); }
-        .card img { height: 180px; width: 100%; object-fit: contain; margin-bottom: 20px; }
-        .buy-btn-sm { margin-top: auto; background: var(--bg-body); color: var(--accent); border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
+        /* HORIZONTAL SCROLL (RECOMENDATIONS) */
+        .featured-section { padding: 20px 0; max-width: 1200px; margin: 0 auto; }
+        .sec-title { padding: 0 20px; font-size: 22px; font-weight: 700; margin-bottom: 15px; }
+        
+        .horizontal-scroll { 
+            display: flex; gap: 16px; overflow-x: auto; padding: 10px 20px 30px; 
+            scrollbar-width: none; scroll-behavior: smooth; 
+        }
+        .horizontal-scroll::-webkit-scrollbar { display: none; }
+        
+        .feat-card { 
+            min-width: 260px; height: 340px; 
+            background: var(--bg-card); border-radius: var(--radius-xl); 
+            padding: 20px; position: relative; display: flex; flex-direction: column; justify-content: space-between; 
+            box-shadow: var(--shadow-sm); transition: 0.3s; cursor: pointer; 
+        }
+        .feat-card:active { transform: scale(0.98); }
+        .feat-img { width: 100%; height: 180px; object-fit: contain; }
+        .badge-new { position: absolute; top: 16px; left: 16px; background: var(--accent); color: white; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
 
-        /* MINI CART */
-        .cart-sidebar { position: fixed; top: 0; right: -400px; width: 380px; height: 100vh; background: var(--bg-glass); backdrop-filter: blur(25px); box-shadow: -10px 0 40px rgba(0,0,0,0.1); z-index: 2000; transition: 0.5s var(--ease); display: flex; flex-direction: column; border-left: 1px solid rgba(255,255,255,0.2); }
+        /* MAIN GRID (RESPONSIVE) */
+        .grid { 
+            display: grid; 
+            /* Адаптивная сетка: автозаполнение, минимум 160px на мобильных, больше на ПК */
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            gap: 16px; max-width: 1200px; margin: 0 auto 40px; padding: 0 16px; 
+        }
+        
+        @media (min-width: 768px) {
+            .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+        }
+
+        .card { 
+            background: var(--bg-card); border-radius: var(--radius-m); 
+            padding: 16px; text-align: center; transition: 0.3s; cursor: pointer; 
+            position: relative; display: flex; flex-direction: column; 
+            height: 100%; /* Одинаковая высота */
+            box-shadow: var(--shadow-sm);
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .card img { height: 140px; width: 100%; object-fit: contain; margin-bottom: 12px; }
+        .card h3 { font-size: 15px; margin: 0 0 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .card .price { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
+        .buy-btn-sm { 
+            margin-top: auto; background: rgba(0,0,0,0.05); color: var(--accent); 
+            border: none; padding: 8px 12px; border-radius: 12px; font-weight: 600; cursor: pointer; width: 100%; 
+        }
+        .buy-btn-sm:active { background: var(--accent); color: white; }
+
+        /* MINI CART SIDEBAR */
+        .cart-sidebar { 
+            position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; 
+            background: var(--bg-glass); backdrop-filter: blur(30px); 
+            box-shadow: -10px 0 40px rgba(0,0,0,0.2); z-index: 2000; 
+            transition: 0.4s var(--ease); display: flex; flex-direction: column; 
+        }
         .cart-sidebar.open { right: 0; }
         .cart-items-area { flex: 1; overflow-y: auto; padding: 20px; }
-        .mini-item { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
-        .mini-img { width: 50px; height: 50px; object-fit: contain; background: white; border-radius: 8px; }
-        .mini-checkout { width: 100%; padding: 16px; background: var(--text-main); color: var(--bg-body); border: none; border-radius: 14px; font-weight: 600; cursor: pointer; }
+        .mini-item { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 12px; }
+        .mini-img { width: 48px; height: 48px; object-fit: contain; background: white; border-radius: 8px; }
+        .mini-checkout { 
+            width: 100%; padding: 16px; background: var(--text-main); color: var(--bg-body); 
+            border: none; border-radius: 16px; font-weight: 600; font-size: 16px; cursor: pointer; 
+        }
 
-        /* CHAT */
-        .chat-widget { position: fixed; bottom: 30px; right: 30px; z-index: 1500; display: flex; flex-direction: column; align-items: flex-end; }
-        .chat-btn { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #0071E3, #42a1ff); color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,113,227,0.4); transition: 0.3s; }
-        .chat-window { width: 320px; height: 400px; background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-lg); margin-bottom: 15px; display: none; flex-direction: column; animation: slideUp 0.3s ease-out; }
+        /* CHAT WIDGET */
+        .chat-widget { position: fixed; bottom: 24px; right: 24px; z-index: 1500; }
+        .chat-btn { 
+            width: 56px; height: 56px; border-radius: 50%; 
+            background: var(--accent); color: white; border: none; font-size: 24px; 
+            box-shadow: 0 8px 24px rgba(0,113,227,0.4); cursor: pointer; transition: 0.3s; 
+        }
+        .chat-window { 
+            width: 300px; height: 400px; background: var(--bg-card); border-radius: 20px; 
+            box-shadow: var(--shadow-lg); margin-bottom: 16px; display: none; flex-direction: column; 
+            position: absolute; bottom: 70px; right: 0;
+            overflow: hidden; animation: slideUp 0.3s ease-out;
+        }
         .chat-window.open { display: flex; }
-        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; }
-        .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; font-size: 14px; }
-        .msg-bot { background: rgba(0,0,0,0.05); align-self: flex-start; }
-        .msg-user { background: var(--accent); color: white; align-self: flex-end; }
-
-        /* --- DUAL PAYMENT MODAL --- */
-        .pay-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 3000; display: none; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; }
-        .pay-overlay.open { display: flex; opacity: 1; }
         
-        .pay-card-ui { background: white; width: 400px; padding: 30px; border-radius: 24px; text-align: center; transform: scale(0.9); transition: 0.3s var(--ease); position: relative; }
+        /* PAYMENT MODAL */
+        .pay-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 3000; 
+            display: none; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; 
+            padding: 20px;
+        }
+        .pay-overlay.open { display: flex; opacity: 1; }
+        .pay-card-ui { 
+            background: var(--bg-card); width: 100%; max-width: 380px; padding: 24px; 
+            border-radius: 24px; text-align: center; transform: scale(0.95); transition: 0.3s var(--ease); 
+        }
         .pay-overlay.open .pay-card-ui { transform: scale(1); }
 
-        /* TABS */
-        .pay-tabs { display: flex; background: #f5f5f7; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
-        .pay-tab { flex: 1; border: none; padding: 8px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; background: transparent; color: #86868b; transition: 0.2s; }
-        .pay-tab.active { background: white; color: black; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .pay-tabs { display: flex; background: rgba(0,0,0,0.05); padding: 4px; border-radius: 14px; margin-bottom: 20px; }
+        .pay-tab { flex: 1; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 600; background: transparent; color: var(--text-sec); transition: 0.2s; }
+        .pay-tab.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 
-        /* VISUAL CARD */
-        .card-visual { background: linear-gradient(135deg, #1c1c1e, #3a3a3c); height: 160px; border-radius: 16px; color: white; padding: 20px; text-align: left; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: 0.3s; }
-        .card-visual.blue { background: linear-gradient(135deg, #0071E3, #00C6FB); box-shadow: 0 10px 30px rgba(0,113,227,0.4); }
-        .card-chip { width: 36px; height: 26px; background: #FFD700; border-radius: 5px; opacity: 0.9; }
-        .pay-input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 10px; margin-bottom: 10px; box-sizing: border-box; outline: none; transition: 0.3s; }
-        .pay-input:focus { border-color: var(--accent); }
-
-        /* STARS UI */
-        .stars-ui { display: none; padding: 20px 0; }
-        .stars-ui.active { display: block; animation: fadeIn 0.3s; }
-        .star-icon { font-size: 60px; margin-bottom: 10px; animation: bounce 2s infinite; }
-
+        /* ANIMATIONS */
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-        .search-area { padding: 20px; display: flex; justify-content: center; position: sticky; top: 52px; z-index: 900; background: var(--bg-body); }
-        .search-input { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 30px; border: 1px solid rgba(0,0,0,0.1); outline: none; }
+        /* DARK MODE FIXES */
+        body.dark-mode .buy-btn-sm { background: rgba(255,255,255,0.1); }
+        body.dark-mode .search-input { background: #1C1C1E; border-color: #333; }
     </style>
 </head>
 <body>
@@ -97,35 +167,34 @@
     <header>
         <div class="nav-container">
             <a href="/" class="logo"> iStore</a>
-            <a href="/admin.html" id="adminLink" style="display:none; color: red; font-weight: bold; margin-left: 20px;">Admin</a>
+            <a href="/admin.html" id="adminLink" style="display:none; color: var(--danger); font-weight: bold; margin-left: 15px;">Admin</a>
             <div class="nav-icons">
                 <span onclick="toggleTheme()">🌗</span>
-                <span onclick="window.location.href='/profile.html'">👤</span>
-                <span onclick="toggleCart()">🛒 <span id="cartBadge" style="font-weight:bold; font-size:12px; color:var(--accent)">0</span></span>
+                <span onclick="toggleCart()">🛒 <span id="cartBadge" style="font-weight:700; font-size:14px; color:var(--accent)">0</span></span>
             </div>
         </div>
     </header>
 
     <div class="search-area">
-        <input type="text" id="searchInput" class="search-input" placeholder="Найти iPhone, MacBook..." oninput="render()">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск (iPhone, Mac...)" oninput="render()">
     </div>
 
     <div class="featured-section">
-        <div style="padding:0 20px; font-size:24px; font-weight:700; margin-bottom:20px;">Рекомендуем</div>
-        <div class="horizontal-scroll" id="featuredScroll">Loading...</div>
+        <div class="sec-title">Рекомендуем</div>
+        <div class="horizontal-scroll" id="featuredScroll">Загрузка...</div>
     </div>
 
-    <div style="max-width:1200px; margin:0 auto; padding:0 20px; font-size:24px; font-weight:700; margin-bottom:20px;">Все устройства</div>
+    <div class="sec-title" style="max-width:1200px; margin:0 auto;">Все товары</div>
     <div class="grid" id="mainGrid"></div>
 
     <div class="cart-sidebar" id="miniCart">
         <div style="padding:20px; display:flex; justify-content:space-between; align-items:center;">
             <h2 style="margin:0;">Корзина</h2>
-            <span style="cursor:pointer; font-size:24px;" onclick="toggleCart()">×</span>
+            <span style="font-size:28px; cursor:pointer; padding:10px;" onclick="toggleCart()">×</span>
         </div>
         <div class="cart-items-area" id="cartItems"></div>
-        <div style="padding:20px; background:var(--bg-card);">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold;">
+        <div style="padding:20px; background:var(--bg-card); border-top:1px solid rgba(0,0,0,0.05);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold; font-size:18px;">
                 <span>Итого:</span><span id="cartTotal">$0</span>
             </div>
             <button class="mini-checkout" onclick="openPay()">Оформить заказ</button>
@@ -134,15 +203,15 @@
 
     <div class="chat-widget">
         <div class="chat-window" id="chatWindow">
-            <div style="padding:15px; border-bottom:1px solid #eee; font-weight:bold; display:flex; justify-content:space-between;">
-                <span> Genius</span><span onclick="toggleChat()" style="cursor:pointer">×</span>
+            <div style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.05); font-weight:bold; display:flex; justify-content:space-between;">
+                <span> Support</span><span onclick="toggleChat()" style="cursor:pointer; padding:0 5px;">×</span>
             </div>
-            <div class="chat-messages" id="chatMsgs">
-                <div class="msg msg-bot">Здравствуйте! Чем могу помочь?</div>
+            <div class="chat-messages" id="chatMsgs" style="flex:1; padding:15px; overflow-y:auto;">
+                <div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:12px; max-width:85%;">Привет! Чем помочь?</div>
             </div>
-            <div style="padding:10px; border-top:1px solid #eee; display:flex;">
-                <input id="chatInput" style="flex:1; border:none; outline:none;" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMsg()">
-                <button onclick="sendMsg()" style="border:none; background:none; color:var(--accent); font-weight:bold;">→</button>
+            <div style="padding:10px; border-top:1px solid rgba(0,0,0,0.05); display:flex;">
+                <input id="chatInput" style="flex:1; border:none; background:transparent; outline:none;" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMsg()">
+                <button onclick="sendMsg()" style="border:none; background:none; color:var(--accent); font-weight:bold; font-size:18px;">→</button>
             </div>
         </div>
         <button class="chat-btn" onclick="toggleChat()">💬</button>
@@ -154,28 +223,21 @@
             
             <div class="pay-tabs">
                 <button class="pay-tab active" onclick="switchTab('card')">💳 Карта</button>
-                <button class="pay-tab" onclick="switchTab('stars')">⭐️ Telegram Stars</button>
+                <button class="pay-tab" onclick="switchTab('stars')">⭐️ Telegram</button>
             </div>
 
             <div id="view-card">
-                <div class="card-visual blue" id="visualCard">
-                    <div class="card-chip"></div>
-                    <div style="font-size: 20px; letter-spacing: 2px;">•••• •••• •••• 4242</div>
-                    <div style="display:flex; justify-content:space-between; font-size:14px;">
-                        <span>CARD HOLDER</span><span>09/28</span>
-                    </div>
+                <div style="background:linear-gradient(135deg, #0071E3, #00C6FB); height:150px; border-radius:16px; color:white; padding:20px; text-align:left; margin-bottom:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 10px 20px rgba(0,113,227,0.3);">
+                    <div style="width:36px; height:24px; background:rgba(255,255,255,0.3); border-radius:4px;"></div>
+                    <div style="font-size:18px; letter-spacing:2px;">•••• •••• •••• 4242</div>
                 </div>
-                <input type="text" class="pay-input" placeholder="Номер карты" maxlength="19">
-                <div style="display:flex; gap:10px;">
-                    <input type="text" class="pay-input" placeholder="MM/YY" maxlength="5">
-                    <input type="password" class="pay-input" placeholder="CVV" maxlength="3">
-                </div>
-                <button class="mini-checkout" style="background:black; margin-top:10px;" onclick="payWithCard()">Оплатить (Fake)</button>
+                <input type="text" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; margin-bottom:10px;" placeholder="Номер карты">
+                <button class="mini-checkout" style="background:#000; margin-top:10px;" onclick="payWithCard()">Оплатить (Тест)</button>
             </div>
 
-            <div id="view-stars" class="stars-ui">
-                <div class="star-icon">⭐️</div>
-                <p>Оплата через Telegram Bot.<br>Мгновенно и безопасно.</p>
+            <div id="view-stars" style="display:none; padding:20px 0;">
+                <div style="font-size:50px; animation:bounce 2s infinite;">⭐️</div>
+                <p>Оплата через Telegram Stars.<br>Быстро и безопасно.</p>
                 <button class="mini-checkout" style="background:#0071E3; margin-top:10px;" onclick="payWithStars()">Открыть Telegram</button>
             </div>
 
@@ -187,134 +249,161 @@
     let allProducts = [];
     
     async function init() {
+        // Проверка темы
         if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+        // Проверка админа
         if(localStorage.getItem('isAdmin') === 'true') document.getElementById('adminLink').style.display = 'block';
         updateBadge();
+
         try {
-            const res = await fetch('https://istore-i9oo.onrender.com/api/products');
+            const res = await fetch('/api/products');
             allProducts = await res.json();
-            renderFeatured(); render();
-        } catch(e) {}
+            renderFeatured(); 
+            render();
+        } catch(e) { console.error("Ошибка загрузки товаров"); }
     }
 
+    // РЕНДЕР ТОВАРОВ
     function renderFeatured() {
         const feat = allProducts.slice(0, 5);
         document.getElementById('featuredScroll').innerHTML = feat.map(p => `
-            <div class="feat-card" onclick="quickAdd(${p.id})">
+            <div class="feat-card" onclick="quickAdd('${p._id || p.id}')">
                 <div class="badge-new">NEW</div>
-                <img src="${p.img}" class="feat-img">
-                <div><div style="font-weight:bold;">${p.name}</div><div style="color:var(--text-sec); font-size:12px;">$${p.price}</div></div>
+                <img src="${p.img}" class="feat-img" loading="lazy">
+                <div><div style="font-weight:700; margin-bottom:5px;">${p.name}</div>
+                <div style="color:var(--text-sec); font-size:13px;">$${p.price}</div></div>
             </div>`).join('');
     }
 
     function render() {
         const q = document.getElementById('searchInput').value.toLowerCase();
-        document.getElementById('mainGrid').innerHTML = allProducts.filter(p=>p.name.toLowerCase().includes(q)).map(p => `
-            <div class="card" onclick="quickAdd(${p.id})">
-                <img src="${p.img}"><h3>${p.name}</h3><div style="font-weight:bold; margin-bottom:10px;">$${p.price}</div>
+        document.getElementById('mainGrid').innerHTML = allProducts
+            .filter(p => p.name.toLowerCase().includes(q))
+            .map(p => `
+            <div class="card" onclick="quickAdd('${p._id || p.id}')">
+                <img src="${p.img}" loading="lazy">
+                <h3 style="flex:1;">${p.name}</h3>
+                <div class="price">$${p.price}</div>
                 <button class="buy-btn-sm">В корзину</button>
             </div>`).join('');
     }
 
+    // КОРЗИНА
     function toggleCart() { document.getElementById('miniCart').classList.toggle('open'); renderCart(); }
     
     function quickAdd(id) {
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        cart.push(allProducts.find(x => x.id === id));
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateBadge(); renderCart();
-        document.getElementById('miniCart').classList.add('open');
+        const product = allProducts.find(x => (x._id || x.id) == id);
+        if(product) {
+            cart.push(product);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateBadge(); renderCart();
+            document.getElementById('miniCart').classList.add('open');
+        }
     }
 
     function renderCart() {
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
         const box = document.getElementById('cartItems');
         let total = 0;
-        if(!cart.length) { box.innerHTML = "<div style='text-align:center; padding-top:40px; color:gray'>Пусто</div>"; document.getElementById('cartTotal').innerText = "$0"; return; }
         
-        box.innerHTML = cart.map((i, idx) => { total += i.price; return `
+        if(!cart.length) { 
+            box.innerHTML = "<div style='text-align:center; padding-top:40px; color:var(--text-sec)'>Пусто</div>"; 
+            document.getElementById('cartTotal').innerText = "$0"; 
+            return; 
+        }
+        
+        box.innerHTML = cart.map((i, idx) => { 
+            total += i.price; 
+            return `
             <div class="mini-item">
                 <img src="${i.img}" class="mini-img">
                 <div style="flex:1"><b>${i.name}</b><br><small>$${i.price}</small></div>
-                <button onclick="remItem(${idx})" style="border:none; bg:none; color:red; cursor:pointer">×</button>
-            </div>`}).join('');
+                <button onclick="remItem(${idx})" style="border:none; background:none; color:var(--danger); font-size:20px; padding:10px;">×</button>
+            </div>`
+        }).join('');
         document.getElementById('cartTotal').innerText = "$" + total;
     }
-    function remItem(i) { let c = JSON.parse(localStorage.getItem('cart')); c.splice(i,1); localStorage.setItem('cart', JSON.stringify(c)); renderCart(); updateBadge(); }
-    function updateBadge() { document.getElementById('cartBadge').innerText = (JSON.parse(localStorage.getItem('cart'))||[]).length; }
 
-    // CHAT
+    function remItem(i) { 
+        let c = JSON.parse(localStorage.getItem('cart')); 
+        c.splice(i,1); 
+        localStorage.setItem('cart', JSON.stringify(c)); 
+        renderCart(); updateBadge(); 
+    }
+    
+    function updateBadge() { 
+        const len = (JSON.parse(localStorage.getItem('cart'))||[]).length;
+        document.getElementById('cartBadge').innerText = len; 
+    }
+
+    // ЧАТ
     function toggleChat() { document.getElementById('chatWindow').classList.toggle('open'); }
     function sendMsg() {
         const inp = document.getElementById('chatInput');
         if(!inp.value) return;
-        document.getElementById('chatMsgs').innerHTML += `<div class="msg msg-user">${inp.value}</div>`;
+        document.getElementById('chatMsgs').innerHTML += `<div style="background:var(--accent); color:white; padding:10px; border-radius:12px; margin:10px 0 10px auto; max-width:85%; width:fit-content;">${inp.value}</div>`;
         inp.value = '';
-        setTimeout(() => { document.getElementById('chatMsgs').innerHTML += `<div class="msg msg-bot">Я могу помочь вам с выбором техники Apple.</div>`; }, 1000);
+        setTimeout(() => { 
+            document.getElementById('chatMsgs').innerHTML += `<div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:12px; width:fit-content;">Я бот, но скоро поумнею! 🤖</div>`; 
+            const box = document.getElementById('chatMsgs'); box.scrollTop = box.scrollHeight;
+        }, 1000);
     }
 
-    // PAYMENT LOGIC
+    // ОПЛАТА
     function openPay() { 
-        if(!JSON.parse(localStorage.getItem('cart'))?.length) return alert('Корзина пуста');
+        if(!(JSON.parse(localStorage.getItem('cart'))||[]).length) return alert('Корзина пуста');
         document.getElementById('miniCart').classList.remove('open');
         document.getElementById('payModal').classList.add('open'); 
     }
     function closePay() { document.getElementById('payModal').classList.remove('open'); }
-
-    function switchTab(type) {
+    
+    function switchTab(t) {
         document.querySelectorAll('.pay-tab').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
-        if(type === 'card') {
-            document.getElementById('view-card').style.display = 'block';
-            document.getElementById('view-stars').classList.remove('active');
-        } else {
-            document.getElementById('view-card').style.display = 'none';
-            document.getElementById('view-stars').classList.add('active');
-        }
+        document.getElementById('view-card').style.display = t==='card'?'block':'none';
+        document.getElementById('view-stars').style.display = t==='stars'?'block':'none';
     }
 
-    // 1. FAKE CARD PAYMENT
-    async function payWithCard() {
-        const btn = event.target;
-        btn.innerText = "Обработка...";
-        setTimeout(async () => {
-            await createOrder();
-            btn.innerText = "Успешно! ✅";
-            btn.style.background = "#34c759";
-            setTimeout(() => { window.location.href = '/profile.html'; }, 1500);
-        }, 1500);
-    }
-
-    // 2. TELEGRAM STARS PAYMENT
     async function payWithStars() {
         const btn = event.target;
         btn.innerText = "Создаем счет...";
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
         try {
-            const res = await fetch('https://istore-i9oo.onrender.com/api/create-payment-link', {
+            const res = await fetch('/api/create-payment-link', {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cart })
             });
             const data = await res.json();
             if(data.url) {
                 btn.innerText = "Открываем Telegram... ✈️";
+                localStorage.removeItem('cart'); // Очистка после перехода
+                updateBadge();
                 setTimeout(() => { window.location.href = data.url; }, 1000);
-            } else { alert("Ошибка"); }
+            } else { alert("Ошибка создания ссылки"); }
         } catch(e) { alert("Ошибка сети"); }
     }
 
-    async function createOrder() {
+    async function payWithCard() {
+        const btn = event.target;
+        btn.innerText = "Обработка...";
         const cart = JSON.parse(localStorage.getItem('cart'));
-        const userId = localStorage.getItem('userId');
-        await fetch('https://istore-i9oo.onrender.com/api/orders', {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cart, userId })
+        // Здесь имитация запроса
+        await fetch('/api/orders', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ cart, userId: localStorage.getItem('userId') })
         });
-        localStorage.removeItem('cart');
+        localStorage.removeItem('cart'); updateBadge();
+        setTimeout(() => { 
+            btn.innerText = "Успешно! ✅"; btn.style.background = "#34c759";
+            setTimeout(() => { closePay(); window.location.reload(); }, 1500);
+        }, 1500);
     }
 
     function toggleTheme() {
         document.body.classList.toggle('dark-mode');
         localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
     }
+
     init();
 </script>
 </body>
