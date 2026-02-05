@@ -4,22 +4,19 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-// Убрали проблемные библиотеки xss и mongoSanitize
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // --- ЗАЩИТА ---
 app.use(helmet({ contentSecurityPolicy: false }));
-
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api', limiter);
-
-// Здесь были проблемные строки, мы их удалили, чтобы сайт не падал
-
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public'))); 
+
+// --- ВАЖНОЕ ИСПРАВЛЕНИЕ: Ищем файлы в главной папке ---
+app.use(express.static(__dirname)); 
 
 // --- БАЗА ДАННЫХ ---
 const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&appName=Cluster0';
@@ -50,8 +47,6 @@ const Order = mongoose.model('Order', orderSchema);
 const TG_BOT_TOKEN = '8353105063:AAGk39ebC7Z8ao7hHykiKXY3XE5tchrpT8o';
 
 // --- API ROUTES ---
-
-// Товары
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -61,7 +56,6 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// Создание заказа
 app.post('/api/orders', async (req, res) => {
     try {
         const { cart, userId } = req.body;
@@ -75,12 +69,10 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// Оплата Telegram Stars
 app.post('/api/create-payment-link', async (req, res) => {
     try {
         const { cart } = req.body;
         const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
-
         const invoicePayload = {
             title: "Заказ iStore",
             description: `Оплата (${cart.length} товаров)`,
@@ -89,7 +81,6 @@ app.post('/api/create-payment-link', async (req, res) => {
             currency: "XTR",
             prices: [{ label: "Сумма", amount: totalAmount }]
         };
-
         const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/createInvoiceLink`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -103,9 +94,10 @@ app.post('/api/create-payment-link', async (req, res) => {
     }
 });
 
-// Frontend
+// --- ГЛАВНАЯ СТРАНИЦА (ИСПРАВЛЕНО) ---
+// Ищем index.html прямо рядом с server.js
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ЗАПУСК
