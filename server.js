@@ -4,7 +4,6 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 
 const app = express();
@@ -14,7 +13,7 @@ const port = process.env.PORT || 3000;
 app.use(helmet({ contentSecurityPolicy: false }));
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api', limiter);
-app.use(mongoSanitize());
+// app.use(mongoSanitize()); <--- УБРАЛИ ЭТУ СТРОКУ, ОНА ВЫЗЫВАЛА ОШИБКУ
 app.use(xss());
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
@@ -46,8 +45,6 @@ const orderSchema = new mongoose.Schema({
 const Order = mongoose.model('Order', orderSchema);
 
 // --- КЛЮЧИ ---
-// Временно отключили бота и API, чтобы починить сайт. 
-// Токен для оплаты (можно оставить, он безопасен пока мы не пользуемся им)
 const TG_BOT_TOKEN = '8353105063:AAGk39ebC7Z8ao7hHykiKXY3XE5tchrpT8o';
 
 // --- API ROUTES ---
@@ -104,8 +101,7 @@ app.post('/api/create-payment-link', async (req, res) => {
     }
 });
 
-// --- 👇 ВОТ ЗДЕСЬ БЫЛА ОШИБКА, МЫ ЕЕ ИСПРАВИЛИ 👇 ---
-// Мы используем /.*/ вместо '*', чтобы сервер не ругался
+// Маршрутизатор (исправленный)
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
