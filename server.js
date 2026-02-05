@@ -15,14 +15,18 @@ app.use('/api', limiter);
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 
-// --- ВАЖНОЕ ИСПРАВЛЕНИЕ: Ищем файлы в главной папке ---
+// Раздача статических файлов из текущей папки
 app.use(express.static(__dirname)); 
 
-// --- БАЗА ДАННЫХ ---
-const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&appName=Cluster0';
+// --- БАЗА ДАННЫХ (ОБНОВЛЕННЫЙ БЛОК) ---
+// Добавлен connectTimeoutMS для предотвращения вечной загрузки при плохом соединении
+const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&connectTimeoutMS=30000';
+
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Error:', err));
+    .catch(err => {
+        console.error('❌ MongoDB Error Details:', err.message);
+    });
 
 // --- СХЕМЫ ---
 const productSchema = new mongoose.Schema({
@@ -94,8 +98,7 @@ app.post('/api/create-payment-link', async (req, res) => {
     }
 });
 
-// --- ГЛАВНАЯ СТРАНИЦА (ИСПРАВЛЕНО) ---
-// Ищем index.html прямо рядом с server.js
+// ГЛАВНАЯ СТРАНИЦА
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
