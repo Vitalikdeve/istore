@@ -4,17 +4,19 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const xss = require('xss-clean');
+// Убрали проблемные библиотеки xss и mongoSanitize
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // --- ЗАЩИТА ---
 app.use(helmet({ contentSecurityPolicy: false }));
+
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api', limiter);
-// app.use(mongoSanitize()); <--- УБРАЛИ ЭТУ СТРОКУ, ОНА ВЫЗЫВАЛА ОШИБКУ
-app.use(xss());
+
+// Здесь были проблемные строки, мы их удалили, чтобы сайт не падал
+
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public'))); 
@@ -101,7 +103,7 @@ app.post('/api/create-payment-link', async (req, res) => {
     }
 });
 
-// Маршрутизатор (исправленный)
+// Frontend
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
