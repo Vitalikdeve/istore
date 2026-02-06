@@ -8,23 +8,28 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// --- ВАЖНОЕ ИСПРАВЛЕНИЕ: Доверяем прокси Render ---
+// Это уберет ошибку "ValidationError: X-Forwarded-For"
+app.set('trust proxy', 1);
+
 // --- ЗАЩИТА ---
 app.use(helmet({ contentSecurityPolicy: false }));
-// Лимит запросов (немного увеличил для админки)
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
+const limiter = rateLimit({ 
+    windowMs: 15 * 60 * 1000, 
+    max: 200,
+    validate: { trustProxy: false } // Отключаем строгую проверку, так как мы включили trust proxy выше
+});
 app.use('/api', limiter);
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
-
-// Раздача файлов (сайт и админка)
 app.use(express.static(__dirname));
 
 // --- БАЗА ДАННЫХ ---
-const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&connectTimeoutMS=30000';
+const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&appName=Cluster0';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Error:', err.message));
+    .catch(err => console.error('❌ MongoDB Error Details:', err.codeName || err.message));
 
 // --- СХЕМЫ ---
 const productSchema = new mongoose.Schema({
@@ -48,9 +53,7 @@ const Order = mongoose.model('Order', orderSchema);
 // --- КЛЮЧИ ---
 const TG_BOT_TOKEN = '8353105063:AAGk39ebC7Z8ao7hHykiKXY3XE5tchrpT8o';
 
-// --- API (ФУНКЦИОНАЛ) ---
-
-// 1. Получить все товары
+// --- API ---
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -60,18 +63,10 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// 2. ДОБАВИТЬ ТОВАР (ДЛЯ АДМИНКИ)
 app.post('/api/add-product', async (req, res) => {
     try {
         const { name, price, img, specs } = req.body;
-        // Генерируем случайный ID
-        const newProduct = new Product({ 
-            id: Date.now(), 
-            name, 
-            price, 
-            img, 
-            specs 
-        });
+        const newProduct = new Product({ id: Date.now(), name, price, img, specs });
         await newProduct.save();
         res.json({ status: 'ok', product: newProduct });
     } catch (e) {
@@ -79,7 +74,6 @@ app.post('/api/add-product', async (req, res) => {
     }
 });
 
-// 3. УДАЛИТЬ ТОВАР (ДЛЯ АДМИНКИ)
 app.delete('/api/products/:id', async (req, res) => {
     try {
         await Product.deleteOne({ id: req.params.id });
@@ -89,7 +83,6 @@ app.delete('/api/products/:id', async (req, res) => {
     }
 });
 
-// 4. Создать заказ
 app.post('/api/orders', async (req, res) => {
     try {
         const { cart, userId } = req.body;
@@ -103,7 +96,6 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// 5. Оплата
 app.post('/api/create-payment-link', async (req, res) => {
     try {
         const { cart } = req.body;
@@ -129,7 +121,6 @@ app.post('/api/create-payment-link', async (req, res) => {
     }
 });
 
-// Маршрутизация (чтобы открывался сайт и админка)
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
@@ -138,7 +129,6 @@ app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ЗАПУСК
 app.listen(port, () => {
     console.log(`🚀 Server running on port ${port}`);
 });
