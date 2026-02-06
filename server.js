@@ -6,10 +6,9 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
 
-// --- 1. ВАЖНЫЕ НАСТРОЙКИ СЕТИ (RENDER FIX) ---
-// Доверяем прокси Render, чтобы не было ошибки X-Forwarded-For
+// --- 1. ВАЖНЫЕ НАСТРОЙКИ СЕТИ ---
 app.set('trust proxy', 1);
 
 // --- 2. БЕЗОПАСНОСТЬ ---
@@ -17,19 +16,20 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 
-// Лимит запросов (защита от DDOS)
+// Лимит запросов
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300, // Увеличил лимит
-    validate: { trustProxy: false } // Отключаем лишнюю проверку
+    max: 300,
+    validate: { trustProxy: false } 
 });
 app.use('/api', limiter);
 
-// Раздача файлов сайта (frontend)
+// Раздача файлов сайта
 app.use(express.static(__dirname));
 
-// --- 3. БАЗА ДАННЫХ (MONGO DB) ---
-const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&appName=Cluster0';
+// --- 3. БАЗА ДАННЫХ (ИСПРАВЛЕННЫЙ АДРЕС) ---
+// Твой новый адрес: ohmyicg. Имя пользователя: vitalikzelenkoplay_db_user
+const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay_db_user:Zelenko2011@cluster0.ohmyicg.mongodb.net/istore?retryWrites=true&w=majority&appName=Cluster0';
 
 // Схемы данных
 const productSchema = new mongoose.Schema({
@@ -44,15 +44,15 @@ const orderSchema = new mongoose.Schema({
 });
 const Order = mongoose.model('Order', orderSchema);
 
-// Подключение с Авто-Заполнением (Seeder)
+// Подключение с Авто-Заполнением
 mongoose.connect(MONGO_URI)
     .then(async () => {
         console.log('✅ MongoDB Успешно подключена!');
         
-        // --- МАГИЯ: АВТО-ДОБАВЛЕНИЕ ТОВАРОВ ---
+        // Проверка и добавление товаров
         const count = await Product.countDocuments();
         if (count === 0) {
-            console.log('📦 База пустая. Добавляю тестовые товары...');
+            console.log('📦 База пустая. Добавляю товары...');
             await Product.insertMany([
                 {
                     id: 1,
@@ -76,30 +76,26 @@ mongoose.connect(MONGO_URI)
                     specs: "Noise Cancellation"
                 }
             ]);
-            console.log('🚀 Товары успешно добавлены!');
+            console.log('🚀 Товары созданы!');
         }
     })
     .catch(err => {
-        console.error('❌ Ошибка подключения к БД:', err.message);
+        console.error('❌ Ошибка БД:', err.message);
     });
 
 // --- 4. КЛЮЧИ ---
 const TG_BOT_TOKEN = '8353105063:AAGk39ebC7Z8ao7hHykiKXY3XE5tchrpT8o';
 
-// --- 5. API (МАРШРУТЫ) ---
-
-// Получить товары
+// --- 5. API ---
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
         res.json(products);
     } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Ошибка сервера при получении товаров' });
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
-// Добавить товар (Админка)
 app.post('/api/add-product', async (req, res) => {
     try {
         const { name, price, img, specs } = req.body;
@@ -107,35 +103,32 @@ app.post('/api/add-product', async (req, res) => {
         await newProduct.save();
         res.json({ status: 'ok', product: newProduct });
     } catch (e) {
-        res.status(500).json({ error: 'Ошибка сохранения' });
+        res.status(500).json({ error: 'Error' });
     }
 });
 
-// Удалить товар
 app.delete('/api/products/:id', async (req, res) => {
     try {
         await Product.deleteOne({ id: req.params.id });
         res.json({ status: 'deleted' });
     } catch (e) {
-        res.status(500).json({ error: 'Ошибка удаления' });
+        res.status(500).json({ error: 'Error' });
     }
 });
 
-// Создать заказ
 app.post('/api/orders', async (req, res) => {
     try {
         const { cart, userId } = req.body;
-        if (!cart) return res.status(400).json({ error: 'Пустая корзина' });
+        if (!cart) return res.status(400).json({ error: 'No cart' });
         const total = cart.reduce((sum, i) => sum + i.price, 0);
         const newOrder = new Order({ userId, items: cart, total });
         await newOrder.save();
         res.json({ status: 'ok' });
     } catch (e) {
-        res.status(500).json({ error: 'Ошибка заказа' });
+        res.status(500).json({ error: 'Error' });
     }
 });
 
-// Оплата
 app.post('/api/create-payment-link', async (req, res) => {
     try {
         const { cart } = req.body;
@@ -149,32 +142,27 @@ app.post('/api/create-payment-link', async (req, res) => {
             prices: [{ label: "Сумма", amount: totalAmount }]
         };
         
-        // Используем встроенный fetch (Node 18+)
         const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/createInvoiceLink`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(invoicePayload)
         });
         const data = await response.json();
-        
         if (data.ok) res.json({ url: data.result });
-        else res.status(500).json({ error: 'Ошибка Telegram API' });
+        else res.status(500).json({ error: 'TG Error' });
     } catch (e) {
-        res.status(500).json({ error: 'Ошибка создания оплаты' });
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
-// --- 6. МАРШРУТИЗАЦИЯ (ФРОНТЕНД) ---
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Любой другой запрос -> Главная страница
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- 7. ЗАПУСК ---
 app.listen(port, () => {
-    console.log(`🚀 Сервер запущен на порту ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
 });
