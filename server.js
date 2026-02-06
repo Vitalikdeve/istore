@@ -10,23 +10,21 @@ const port = process.env.PORT || 3000;
 
 // --- ЗАЩИТА ---
 app.use(helmet({ contentSecurityPolicy: false }));
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
+// Лимит запросов (немного увеличил для админки)
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 app.use('/api', limiter);
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 
-// Раздача статических файлов из текущей папки
-app.use(express.static(__dirname)); 
+// Раздача файлов (сайт и админка)
+app.use(express.static(__dirname));
 
-// --- БАЗА ДАННЫХ (ОБНОВЛЕННЫЙ БЛОК) ---
-// Добавлен connectTimeoutMS для предотвращения вечной загрузки при плохом соединении
+// --- БАЗА ДАННЫХ ---
 const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay:Zelenko2011@cluster0.684a4.mongodb.net/istore?retryWrites=true&w=majority&connectTimeoutMS=30000';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => {
-        console.error('❌ MongoDB Error Details:', err.message);
-    });
+    .catch(err => console.error('❌ MongoDB Error:', err.message));
 
 // --- СХЕМЫ ---
 const productSchema = new mongoose.Schema({
@@ -50,7 +48,9 @@ const Order = mongoose.model('Order', orderSchema);
 // --- КЛЮЧИ ---
 const TG_BOT_TOKEN = '8353105063:AAGk39ebC7Z8ao7hHykiKXY3XE5tchrpT8o';
 
-// --- API ROUTES ---
+// --- API (ФУНКЦИОНАЛ) ---
+
+// 1. Получить все товары
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
@@ -60,6 +60,36 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
+// 2. ДОБАВИТЬ ТОВАР (ДЛЯ АДМИНКИ)
+app.post('/api/add-product', async (req, res) => {
+    try {
+        const { name, price, img, specs } = req.body;
+        // Генерируем случайный ID
+        const newProduct = new Product({ 
+            id: Date.now(), 
+            name, 
+            price, 
+            img, 
+            specs 
+        });
+        await newProduct.save();
+        res.json({ status: 'ok', product: newProduct });
+    } catch (e) {
+        res.status(500).json({ error: 'Save Error' });
+    }
+});
+
+// 3. УДАЛИТЬ ТОВАР (ДЛЯ АДМИНКИ)
+app.delete('/api/products/:id', async (req, res) => {
+    try {
+        await Product.deleteOne({ id: req.params.id });
+        res.json({ status: 'deleted' });
+    } catch (e) {
+        res.status(500).json({ error: 'Delete Error' });
+    }
+});
+
+// 4. Создать заказ
 app.post('/api/orders', async (req, res) => {
     try {
         const { cart, userId } = req.body;
@@ -73,6 +103,7 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
+// 5. Оплата
 app.post('/api/create-payment-link', async (req, res) => {
     try {
         const { cart } = req.body;
@@ -98,7 +129,11 @@ app.post('/api/create-payment-link', async (req, res) => {
     }
 });
 
-// ГЛАВНАЯ СТРАНИЦА
+// Маршрутизация (чтобы открывался сайт и админка)
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
