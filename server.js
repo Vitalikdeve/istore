@@ -27,9 +27,9 @@ app.use('/api', limiter);
 // Раздача файлов сайта
 app.use(express.static(__dirname));
 
-// --- 3. БАЗА ДАННЫХ (ИСПРАВЛЕННЫЙ АДРЕС) ---
-// Твой новый адрес: ohmyicg. Имя пользователя: vitalikzelenkoplay_db_user
-const MONGO_URI = 'mongodb+srv://vitalikzelenkoplay_db_user:Zelenko2011@cluster0.ohmyicg.mongodb.net/istore?retryWrites=true&w=majority&appName=Cluster0';
+// --- 3. БАЗА ДАННЫХ (ЗОЛОТОЙ КЛЮЧ 🗝️) ---
+// Новый пользователь superadmin и пароль admin123
+const MONGO_URI = 'mongodb+srv://superadmin:admin123@cluster0.ohmyicg.mongodb.net/istore?retryWrites=true&w=majority';
 
 // Схемы данных
 const productSchema = new mongoose.Schema({
@@ -47,7 +47,7 @@ const Order = mongoose.model('Order', orderSchema);
 // Подключение с Авто-Заполнением
 mongoose.connect(MONGO_URI)
     .then(async () => {
-        console.log('✅ MongoDB Успешно подключена!');
+        console.log('✅ MongoDB Успешно подключена! (SuperAdmin)');
         
         // Проверка и добавление товаров
         const count = await Product.countDocuments();
