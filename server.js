@@ -8,30 +8,32 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const port = process.env.PORT || 10000;
 
-// --- 1. ВАЖНЫЕ НАСТРОЙКИ СЕТИ ---
+// --- 1. БЕЗОПАСНОСТЬ И НАСТРОЙКИ ---
 app.set('trust proxy', 1);
-
-// --- 2. БЕЗОПАСНОСТЬ ---
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 
-// Лимит запросов
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 300,
     validate: { trustProxy: false } 
 });
 app.use('/api', limiter);
-
-// Раздача файлов сайта
 app.use(express.static(__dirname));
 
-// --- 3. БАЗА ДАННЫХ (ЗОЛОТОЙ КЛЮЧ 🗝️) ---
-// Новый пользователь superadmin и пароль admin123
-const MONGO_URI = 'mongodb+srv://superadmin:admin123@cluster0.ohmyicg.mongodb.net/istore?retryWrites=true&w=majority';
+// --- 2. СЕКРЕТНЫЕ КЛЮЧИ (Берем из Render) ---
+const MONGO_URI = process.env.MONGO_URI;
+const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
+const TG_PAY_TOKEN = process.env.TG_PAY_TOKEN;
 
-// Схемы данных
+// Проверка: Если ключей нет, сервер не запустится (защита от ошибок)
+if (!MONGO_URI || !TG_BOT_TOKEN || !TG_PAY_TOKEN) {
+    console.error('❌ ОШИБКА: Не найдены переменные окружения! Добавь их в настройках Render.');
+    // Мы не выключаем сервер, чтобы ты мог увидеть логи, но работать он не будет корректно без ключей
+}
+
+// --- 3. БАЗА ДАННЫХ ---
 const productSchema = new mongoose.Schema({
     id: Number, name: String, price: Number, img: String, specs: String
 });
@@ -44,56 +46,19 @@ const orderSchema = new mongoose.Schema({
 });
 const Order = mongoose.model('Order', orderSchema);
 
-// Подключение с Авто-Заполнением
-mongoose.connect(MONGO_URI)
-    .then(async () => {
-        console.log('✅ MongoDB Успешно подключена! (SuperAdmin)');
-        
-        // Проверка и добавление товаров
-        const count = await Product.countDocuments();
-        if (count === 0) {
-            console.log('📦 База пустая. Добавляю товары...');
-            await Product.insertMany([
-                {
-                    id: 1,
-                    name: "iPhone 15 Pro",
-                    price: 120000,
-                    img: "https://shop.mts.ru/upload/iblock/58c/4.jpg",
-                    specs: "Titanium, 256GB"
-                },
-                {
-                    id: 2,
-                    name: "MacBook Air M2",
-                    price: 150000,
-                    img: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/macbook-air-midnight-select-20220606?wid=539&hei=312&fmt=jpeg&qlt=90&.v=1653084303665",
-                    specs: "Midnight, 512GB"
-                },
-                {
-                    id: 3,
-                    name: "AirPods Pro 2",
-                    price: 25000,
-                    img: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/MQD83?wid=572&hei=572&fmt=jpeg&qlt=95&.v=1660803972361",
-                    specs: "Noise Cancellation"
-                }
-            ]);
-            console.log('🚀 Товары созданы!');
-        }
-    })
-    .catch(err => {
-        console.error('❌ Ошибка БД:', err.message);
-    });
+if (MONGO_URI) {
+    mongoose.connect(MONGO_URI)
+        .then(() => console.log('✅ MongoDB Connected (Secure)'))
+        .catch(err => console.error('❌ MongoDB Error:', err.message));
+}
 
-// --- 4. КЛЮЧИ ---
-const TG_BOT_TOKEN = '8353105063:AAGk39ebC7Z8ao7hHykiKXY3XE5tchrpT8o';
+// --- 4. API (ТОВАРЫ И ОПЛАТА) ---
 
-// --- 5. API ---
 app.get('/api/products', async (req, res) => {
     try {
         const products = await Product.find();
         res.json(products);
-    } catch (e) {
-        res.status(500).json({ error: 'Server Error' });
-    }
+    } catch (e) { res.status(500).json({ error: 'DB Error' }); }
 });
 
 app.post('/api/add-product', async (req, res) => {
@@ -101,45 +66,31 @@ app.post('/api/add-product', async (req, res) => {
         const { name, price, img, specs } = req.body;
         const newProduct = new Product({ id: Date.now(), name, price, img, specs });
         await newProduct.save();
-        res.json({ status: 'ok', product: newProduct });
-    } catch (e) {
-        res.status(500).json({ error: 'Error' });
-    }
+        res.json({ status: 'ok' });
+    } catch (e) { res.status(500).json({ error: 'Save Error' }); }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
     try {
         await Product.deleteOne({ id: req.params.id });
         res.json({ status: 'deleted' });
-    } catch (e) {
-        res.status(500).json({ error: 'Error' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Delete Error' }); }
 });
 
-app.post('/api/orders', async (req, res) => {
-    try {
-        const { cart, userId } = req.body;
-        if (!cart) return res.status(400).json({ error: 'No cart' });
-        const total = cart.reduce((sum, i) => sum + i.price, 0);
-        const newOrder = new Order({ userId, items: cart, total });
-        await newOrder.save();
-        res.json({ status: 'ok' });
-    } catch (e) {
-        res.status(500).json({ error: 'Error' });
-    }
-});
-
+// ГЛАВНАЯ ФУНКЦИЯ ОПЛАТЫ
 app.post('/api/create-payment-link', async (req, res) => {
     try {
         const { cart } = req.body;
-        const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
+        // Сумма в копейках (x100)
+        const totalAmount = cart.reduce((sum, item) => sum + item.price, 0) * 100;
+
         const invoicePayload = {
             title: "Заказ iStore",
             description: `Оплата (${cart.length} товаров)`,
             payload: `order_${Date.now()}`,
-            provider_token: "", 
-            currency: "XTR",
-            prices: [{ label: "Сумма", amount: totalAmount }]
+            provider_token: TG_PAY_TOKEN, // Берем секретный токен из настроек
+            currency: "RUB",
+            prices: [{ label: "Сумма заказа", amount: totalAmount }]
         };
         
         const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/createInvoiceLink`, {
@@ -147,22 +98,21 @@ app.post('/api/create-payment-link', async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(invoicePayload)
         });
+        
         const data = await response.json();
+        
         if (data.ok) res.json({ url: data.result });
-        else res.status(500).json({ error: 'TG Error' });
+        else {
+            console.error('Telegram API Error:', data);
+            res.status(500).json({ error: 'TG Error' });
+        }
     } catch (e) {
+        console.error(e);
         res.status(500).json({ error: 'Server Error' });
     }
 });
 
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
-});
+app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
