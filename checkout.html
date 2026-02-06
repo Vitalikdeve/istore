@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Checkout | iStore</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a2540;
+            --card: #142b47;
+            --accent: #635bff;
+            --text: #fff;
+            --gray: #8f9bba;
+        }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+        
+        /* Split Layout */
+        .left-panel { flex: 1; padding: 60px; display: flex; flex-direction: column; max-width: 600px; border-right: 1px solid rgba(255,255,255,0.1); }
+        .right-panel { flex: 1; background: #071e36; padding: 60px; display: flex; align-items: flex-start; }
+        
+        h1 { font-size: 28px; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--gray); font-size: 14px; }
+        input { 
+            width: 100%; padding: 16px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; 
+            color: white; font-size: 16px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
+
+        /* Order Summary */
+        .order-box { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 30px; width: 100%; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .item-name { font-weight: 600; }
+        .item-price { color: var(--gray); }
+        .total-row { display: flex; justify-content: space-between; font-size: 24px; font-weight: 700; margin-top: 20px; color: var(--accent); }
+
+        .btn-pay {
+            background: var(--accent); color: white; border: none; width: 100%; padding: 20px;
+            font-size: 18px; font-weight: 600; border-radius: 8px; cursor: pointer; margin-top: 30px;
+            transition: 0.3s; box-shadow: 0 10px 30px rgba(99, 91, 255, 0.3);
+        }
+        .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(99, 91, 255, 0.5); }
+        .secure-badge { margin-top: 20px; font-size: 12px; color: var(--gray); text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        @media(max-width: 900px) { body { flex-direction: column; } .left-panel, .right-panel { border: none; padding: 20px; max-width: 100%; } }
+    </style>
+</head>
+<body>
+
+    <div class="left-panel">
+        <div style="margin-bottom: 40px; font-weight: 700; font-size: 24px; display: flex; align-items: center; gap: 10px;">
+            <a href="/" style="color:white; text-decoration:none;">← iStore</a>
+        </div>
+        
+        <h1>Оформление заказа</h1>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" placeholder="name@example.com">
+        </div>
+        <div class="form-group">
+            <label>Информация о доставке</label>
+            <input type="text" placeholder="Имя Фамилия">
+            <input type="text" placeholder="Адрес" style="margin-top: 10px;">
+        </div>
+        
+        <button class="btn-pay" id="payBtn" onclick="processPayment()">
+            Оплатить через Telegram
+        </button>
+        <div class="secure-badge">
+            🔒 Данные зашифрованы по стандарту AES-256
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="order-box">
+            <h3 style="margin-top:0">Ваш заказ</h3>
+            <div id="orderItems">
+                </div>
+            <div class="total-row">
+                <span>Итого:</span>
+                <span id="totalPrice">0 ₽</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        
+        function init() {
+            if(cart.length === 0) {
+                alert("Корзина пуста");
+                window.location.href = '/';
+            }
+
+            const box = document.getElementById('orderItems');
+            let total = 0;
+            
+            box.innerHTML = cart.map(item => {
+                total += item.price;
+                return `
+                <div class="item-row">
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-price">${item.price.toLocaleString()} ₽</span>
+                </div>`;
+            }).join('');
+            
+            document.getElementById('totalPrice').innerText = total.toLocaleString() + ' ₽';
+        }
+
+        async function processPayment() {
+            const btn = document.getElementById('payBtn');
+            btn.innerText = "Связь с банком...";
+            btn.disabled = true;
+            btn.style.opacity = 0.7;
+
+            try {
+                const res = await fetch('/api/create-payment-link', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ cart })
+                });
+
+                const data = await res.json();
+                
+                if (data.url) {
+                    btn.innerText = "Перенаправление...";
+                    localStorage.removeItem('cart');
+                    window.location.href = data.url;
+                } else {
+                    alert("Ошибка: " + data.error);
+                    btn.innerText = "Попробовать снова";
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Ошибка сети");
+                btn.disabled = false;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

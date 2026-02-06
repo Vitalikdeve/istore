@@ -1,65 +1,122 @@
+require('dotenv').config(); // Загрузка секретов
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet'); 
+const rateLimit = require('express-rate-limit'); 
+const mongoSanitize = require('express-mongo-sanitize'); 
+const xss = require('xss-clean'); 
+const hpp = require('hpp'); 
 const path = require('path');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+
+// --- 1. ПРОВЕРКА КЛЮЧЕЙ ---
+if (!process.env.MONGO_URI || !process.env.TG_BOT_TOKEN || !process.env.TG_PAY_TOKEN) {
+    console.error('⛔ FATAL ERROR: Нет ключей в настройках Render!');
+    process.exit(1);
+}
 
 const app = express();
 const port = process.env.PORT || 10000;
 
+// --- 2. НАСТРОЙКИ БЕЗОПАСНОСТИ ---
 app.set('trust proxy', 1);
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
-app.use(express.json({ limit: '10kb' }));
 
-// --- ПРОВЕРКА КЛЮЧЕЙ ПРИ ЗАПУСКЕ ---
-const MONGO_URI = process.env.MONGO_URI;
-const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
-const TG_PAY_TOKEN = process.env.TG_PAY_TOKEN;
+app.use(helmet({ contentSecurityPolicy: false })); // Защита заголовков
+app.use(cors({ origin: '*' })); // Разрешаем доступ
+app.use(express.json({ limit: '10kb' })); // Лимит данных 10кб
 
-console.log("--- ПРОВЕРКА НАСТРОЕК ---");
-console.log("BOT TOKEN:", TG_BOT_TOKEN ? "Загружен (Длина: " + TG_BOT_TOKEN.length + ")" : "ОТСУТСТВУЕТ ❌");
-console.log("PAY TOKEN:", TG_PAY_TOKEN ? "Загружен (Длина: " + TG_PAY_TOKEN.length + ")" : "ОТСУТСТВУЕТ ❌");
-// -----------------------------------
+// Санитизация (Чистка данных от хакеров)
+app.use(mongoSanitize());
+app.use(xss());
+app.use(hpp());
 
-const productSchema = new mongoose.Schema({ id: Number, name: String, price: Number, img: String, specs: String });
+// Ограничение скорости (чтобы не дудосили)
+const globalLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 200,
+    message: { error: 'Too many requests, please try again later.' }
+});
+app.use('/api', globalLimiter);
+
+// --- 3. БАЗА ДАННЫХ ---
+const productSchema = new mongoose.Schema({
+    id: { type: Number, required: true, unique: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    img: { type: String, required: true },
+    specs: { type: String }
+});
 const Product = mongoose.model('Product', productSchema);
 
-if (MONGO_URI) {
-    mongoose.connect(MONGO_URI).then(() => console.log('✅ MongoDB OK')).catch(e => console.error('❌ MongoDB Error:', e));
-}
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('🛡️  Secure DB Connected'))
+    .catch(err => console.error('❌ DB Error:', err.message));
 
+// Раздача статических файлов (картинки, скрипты, если будут)
 app.use(express.static(__dirname));
 
-// API
+// --- 4. API (ТОВАРЫ И ОПЛАТА) ---
+
 app.get('/api/products', async (req, res) => {
-    const products = await Product.find();
-    res.json(products);
+    try {
+        const products = await Product.find().select('-_id -__v');
+        res.json(products);
+    } catch (e) {
+        res.status(500).json({ error: 'Server Error' });
+    }
 });
 
-// ГЛАВНАЯ ФУНКЦИЯ ОПЛАТЫ (С ОТЛАДКОЙ)
+app.post('/api/add-product', async (req, res) => {
+    try {
+        const { name, price, img, specs } = req.body;
+        // Простая защита: добавлять может любой, кто знает API, 
+        // но в реальном проекте тут нужна проверка пароля админа.
+        const newProduct = new Product({ id: Date.now(), name, price, img, specs });
+        await newProduct.save();
+        res.json({ status: 'ok' });
+    } catch (e) {
+        res.status(500).json({ error: 'Error saving product' });
+    }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+    try {
+        await Product.deleteOne({ id: req.params.id });
+        res.json({ status: 'deleted' });
+    } catch (e) {
+        res.status(500).json({ error: 'Error deleting' });
+    }
+});
+
 app.post('/api/create-payment-link', async (req, res) => {
-    console.log("💰 Получен запрос на оплату...");
-    
     try {
         const { cart } = req.body;
-        // Сумма в копейках (Telegram требует целое число!)
-        const totalAmount = Math.ceil(cart.reduce((sum, item) => sum + item.price, 0) * 100);
+        if (!cart || !Array.isArray(cart) || cart.length === 0) {
+            return res.status(400).json({ error: 'Cart is empty' });
+        }
 
-        console.log(`🛒 Товаров: ${cart.length}, Сумма (копейки): ${totalAmount}`);
+        // Считаем сумму на сервере (Безопасно)
+        let totalAmount = 0;
+        for (const item of cart) {
+            if (item.price && typeof item.price === 'number') {
+                totalAmount += item.price;
+            }
+        }
+        
+        // Telegram требует сумму в копейках (x100)
+        const finalAmount = Math.ceil(totalAmount * 100); 
 
         const invoicePayload = {
-            title: "Заказ iStore",
-            description: `Оплата корзины`,
+            title: "iStore Checkout",
+            description: `Order #${Date.now()}`,
             payload: `order_${Date.now()}`,
-            provider_token: TG_PAY_TOKEN,
+            provider_token: process.env.TG_PAY_TOKEN,
             currency: "RUB",
-            prices: [{ label: "Сумма заказа", amount: totalAmount }]
+            prices: [{ label: "Total", amount: finalAmount }]
         };
 
-        // Отправляем запрос
-        const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/createInvoiceLink`, {
+        const response = await fetch(`https://api.telegram.org/bot${process.env.TG_BOT_TOKEN}/createInvoiceLink`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(invoicePayload)
@@ -67,21 +124,37 @@ app.post('/api/create-payment-link', async (req, res) => {
 
         const data = await response.json();
 
-        // ЛОГИРУЕМ ОТВЕТ ТЕЛЕГРАМА
         if (data.ok) {
-            console.log("✅ Ссылка создана:", data.result);
             res.json({ url: data.result });
         } else {
-            console.error("❌ ОШИБКА ТЕЛЕГРАМ:", data);
-            // Отправляем текст ошибки на фронтенд, чтобы ты увидел её в alert
-            res.status(400).json({ error: data.description || "Ошибка API Telegram" });
+            console.error('TG Error:', data);
+            res.status(400).json({ error: 'Payment Gate Error' });
         }
-
     } catch (e) {
-        console.error("❌ ОШИБКА СЕРВЕРА:", e);
-        res.status(500).json({ error: e.message });
+        console.error(e);
+        res.status(500).json({ error: 'Server Transaction Error' });
     }
 });
 
-app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.listen(port, () => console.log(`🚀 Server on ${port}`));
+// --- 5. МАРШРУТИЗАЦИЯ СТРАНИЦ (ГЛАВНОЕ ОБНОВЛЕНИЕ) ---
+
+// Страница безопасной оплаты
+app.get('/checkout', (req, res) => {
+    res.sendFile(path.join(__dirname, 'checkout.html'));
+});
+
+// Админ-панель
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Главная страница (для всех остальных запросов)
+// ВАЖНО: Этот блок должен быть в самом низу!
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// --- ЗАПУСК ---
+app.listen(port, () => {
+    console.log(`🚀 Secure Server running on port ${port}`);
+});

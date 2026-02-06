@@ -2,160 +2,117 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Панель Администратора</title>
+    <title>iStore | Command Center</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f5f5f7; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        :root { --bg: #0a2540; --surface: #132f50; --accent: #00d4ff; --danger: #ff5f56; --text: #fff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
         
-        h1 { text-align: center; color: #1d1d1f; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { font-size: 24px; font-weight: 700; color: white; text-decoration: none; }
+        .status { font-size: 14px; color: #4cd964; display: flex; align-items: center; gap: 8px; }
+        .status::before { content:''; width: 8px; height: 8px; background: #4cd964; border-radius: 50%; display: block; box-shadow: 0 0 10px #4cd964; }
 
-        /* Вкладки */
-        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; border: none; background: #e5e5ea; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        .tab-btn.active { background: #0071e3; color: white; }
-
-        /* Панели */
-        .panel { display: none; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .panel.active { display: block; }
-
-        /* Форма добавления товара */
-        .add-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; background: #f0f0f0; padding: 15px; border-radius: 15px; }
-        .add-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
-        .add-form button { grid-column: span 2; background: #34c759; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 300px; gap: 30px; }
         
-        /* Список товаров */
-        .product-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
-        .product-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 15px; }
-        .product-info { flex-grow: 1; }
-        .btn-delete { background: #ff3b30; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        /* Product Table */
+        .card { background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: #8f9bba; font-size: 12px; padding-bottom: 10px; text-transform: uppercase; }
+        td { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .p-img { width: 40px; height: 40px; border-radius: 6px; background: white; object-fit: contain; }
+        .btn-del { color: var(--danger); background: rgba(255, 95, 86, 0.1); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn-del:hover { background: var(--danger); color: white; }
 
-        /* Заказы */
-        .order-card { border: 1px solid #e5e5ea; padding: 15px; border-radius: 12px; margin-bottom: 10px; }
-        .status-select { padding: 5px; border-radius: 5px; }
+        /* Add Form */
+        input { width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 8px; }
+        .btn-add { width: 100%; background: var(--accent); color: #000; font-weight: 700; padding: 12px; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-add:hover { box-shadow: 0 0 15px var(--accent); }
+
+        @media(max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>⚙️ Админка iStore</h1>
-    
-    <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('products')">📦 Товары</button>
-        <button class="tab-btn" onclick="showTab('orders')">💰 Заказы</button>
-        <button class="tab-btn" onclick="window.location.href='/'" style="background: #e5e5ea;">🏠 В магазин</button>
+    <div class="header">
+        <a href="/" class="logo">iStore Admin</a>
+        <div class="status">System Operational</div>
     </div>
 
-    <div id="products" class="panel active">
-        <h3>Добавить новый товар</h3>
-        <div class="add-form">
-            <input id="pName" placeholder="Название (iPhone 15)">
-            <input id="pPrice" type="number" placeholder="Цена ($)">
-            <input id="pImg" placeholder="Ссылка на картинку (URL)">
-            <input id="pSpecs" placeholder="Описание (Память, цвет...)">
-            <button onclick="addProduct()">➕ Добавить товар</button>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3 style="margin-top:0">Active Inventory</h3>
+            <table id="pTable">
+                <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Action</th></tr></thead>
+                <tbody id="pList"><tr><td colspan="4">Loading...</td></tr></tbody>
+            </table>
         </div>
 
-        <h3>Список товаров</h3>
-        <div id="productsList">Загрузка...</div>
+        <div class="card">
+            <h3 style="margin-top:0">New Product</h3>
+            <input type="text" id="pName" placeholder="Product Name (e.g. iPhone 16)">
+            <input type="number" id="pPrice" placeholder="Price (RUB)">
+            <input type="text" id="pImg" placeholder="Image URL">
+            <input type="text" id="pSpecs" placeholder="Specs (optional)">
+            <button class="btn-add" onclick="addProduct()">+ DEPLOY PRODUCT</button>
+        </div>
     </div>
 
-    <div id="orders" class="panel">
-        <h3>Последние заказы</h3>
-        <button onclick="loadOrders()" style="margin-bottom:10px;">Обновить</button>
-        <div id="ordersList">Загрузка...</div>
-    </div>
-</div>
-
-<script>
-    const API_URL = 'https://istore-i9oo.onrender.com/api'; // Твой адрес
-
-    // Проверка админа
-    if(localStorage.getItem('isAdmin') !== 'true') window.location.href = '/login.html';
-
-    // Переключение вкладок
-    function showTab(tabName) {
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabName).classList.add('active');
-        event.target.classList.add('active');
-    }
-
-    // --- ЛОГИКА ТОВАРОВ ---
-    async function loadProducts() {
-        const res = await fetch(`${API_URL}/products`);
-        const products = await res.json();
-        const list = document.getElementById('productsList');
-        
-        list.innerHTML = products.map(p => `
-            <div class="product-item">
-                <img src="${p.img}" alt="img">
-                <div class="product-info">
-                    <b>${p.name}</b><br>
-                    $${p.price} | ${p.specs || ''}
-                </div>
-                <button class="btn-delete" onclick="deleteProduct(${p.id})">Удалить 🗑</button>
-            </div>
-        `).join('');
-    }
-
-    async function addProduct() {
-        const name = document.getElementById('pName').value;
-        const price = Number(document.getElementById('pPrice').value);
-        const img = document.getElementById('pImg').value;
-        const specs = document.getElementById('pSpecs').value;
-
-        if(!name || !price || !img) return alert("Заполните все поля!");
-
-        await fetch(`${API_URL}/products`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name, price, img, specs })
-        });
-        
-        // Очистить поля и обновить список
-        document.getElementById('pName').value = '';
-        document.getElementById('pPrice').value = '';
-        document.getElementById('pImg').value = '';
-        loadProducts();
-    }
-
-    async function deleteProduct(id) {
-        if(confirm('Удалить этот товар?')) {
-            await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
-            loadProducts();
+    <script>
+        // Simple Auth Check (Client Side)
+        const password = prompt("🔐 SECURITY CHECK\nEnter Admin Password:");
+        if(password !== "admin123") {
+            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:50px;'>ACCESS DENIED ⛔</h1>";
+            throw new Error("Auth Failed");
         }
-    }
 
-    // --- ЛОГИКА ЗАКАЗОВ ---
-    async function loadOrders() {
-        const res = await fetch(`${API_URL}/admin/orders`);
-        const orders = await res.json();
-        document.getElementById('ordersList').innerHTML = orders.reverse().map(o => `
-            <div class="order-card">
-                <b>Заказ #${o.orderId}</b> | $${o.total} <br>
-                Клиент: ${o.userId} <br>
-                Товары: ${o.items.map(i => i.name).join(', ')} <br>
-                <select class="status-select" onchange="changeStatus('${o.orderId}', this.value)">
-                    <option ${o.status === 'В обработке 🕒' ? 'selected' : ''}>В обработке 🕒</option>
-                    <option ${o.status === 'Отправлен 🚚' ? 'selected' : ''}>Отправлен 🚚</option>
-                    <option ${o.status === 'Доставлен ✅' ? 'selected' : ''}>Доставлен ✅</option>
-                </select>
-            </div>
-        `).join('');
-    }
+        async function load() {
+            const res = await fetch('/api/products');
+            const data = await res.json();
+            const list = document.getElementById('pList');
+            list.innerHTML = data.map(p => `
+                <tr>
+                    <td><img src="${p.img}" class="p-img"></td>
+                    <td><b>${p.name}</b><br><small style="color:#888">${p.specs||''}</small></td>
+                    <td>${p.price.toLocaleString()} ₽</td>
+                    <td><button class="btn-del" onclick="del('${p.id || p._id}')">Delete</button></td>
+                </tr>
+            `).join('');
+        }
 
-    async function changeStatus(orderId, newStatus) {
-        await fetch(`${API_URL}/orders/${orderId}/status`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ status: newStatus })
-        });
-    }
+        async function addProduct() {
+            const name = document.getElementById('pName').value;
+            const price = Number(document.getElementById('pPrice').value);
+            const img = document.getElementById('pImg').value;
+            const specs = document.getElementById('pSpecs').value;
 
-    // Запуск при старте
-    loadProducts();
-    loadOrders();
-</script>
+            if(!name || !price || !img) return alert("Fill all fields");
+
+            const btn = document.querySelector('.btn-add');
+            btn.innerText = "Deploying...";
+            
+            await fetch('/api/add-product', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, price, img, specs })
+            });
+            
+            btn.innerText = "+ DEPLOY PRODUCT";
+            load();
+            // Clear inputs
+            document.getElementById('pName').value = '';
+            document.getElementById('pPrice').value = '';
+        }
+
+        async function del(id) {
+            if(confirm('Are you sure? This action is irreversible.')) {
+                await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                load();
+            }
+        }
+
+        load();
+    </script>
 </body>
 </html>
