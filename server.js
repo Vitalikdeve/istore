@@ -155,6 +155,56 @@ app.get('*', (req, res) => {
 });
 
 // --- ЗАПУСК ---
+// ==========================================
+// ДОБАВИТЬ ЭТО В ТВОЙ СУЩЕСТВУЮЩИЙ СЕРВЕР
+// ==========================================
+
+// 1. Схема Пользователя (Как он выглядит в базе)
+const UserSchema = new mongoose.Schema({
+    telegramId: { type: Number, required: true, unique: true },
+    firstName: String,
+    username: String,
+    photoUrl: String,
+    favorites: [String], // Список ID любимых товаров
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Если модель уже есть - используем её, иначе создаем
+const User = mongoose.models.User || mongoose.model('User', UserSchema);
+
+// 2. Роут для входа (Приложение присылает данные сюда)
+app.post('/api/auth/telegram', async (req, res) => {
+    try {
+        const { id, first_name, username, photo_url } = req.body;
+
+        // Проверяем, есть ли такой юзер
+        let user = await User.findOne({ telegramId: id });
+
+        if (!user) {
+            // Если нет - создаем нового
+            user = new User({
+                telegramId: id,
+                firstName: first_name,
+                username: username,
+                photoUrl: photo_url
+            });
+            await user.save();
+            console.log("🆕 Новый пользователь:", first_name);
+        } else {
+            // Если есть - обновляем данные (вдруг поменял аватарку)
+            user.firstName = first_name;
+            user.username = username;
+            user.photoUrl = photo_url;
+            await user.save();
+            console.log("👋 Пользователь вернулся:", first_name);
+        }
+
+        res.json(user); // Отправляем пользователя обратно в приложение
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Ошибка сервера при входе" });
+    }
+});
 app.listen(port, () => {
     console.log(`🚀 Secure Server running on port ${port}`);
 });
