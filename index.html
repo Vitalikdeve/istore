@@ -166,6 +166,15 @@
         }
         .btn-glass { background: rgba(255,255,255,0.1); color: white; backdrop-filter: blur(5px); }
         .btn-glass:hover { background: rgba(255,255,255,0.2); }
+        
+        /* NEW: Download Button Style */
+        .btn-download {
+            background: white; color: var(--brand-dark); font-weight: 800;
+        }
+        .btn-download:hover {
+            background: var(--brand-accent); transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        }
 
         /* --- 3. SEARCH INTERFACE --- */
         .search-dock {
@@ -369,6 +378,15 @@
             </p>
             
             <div class="hero-buttons">
+                <a href="/app.apk" download="iStore_App.apk" class="btn btn-download">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px; color:var(--brand-primary);">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download App
+                </a>
+
                 <a href="#products" class="btn btn-primary">Start Shopping &rarr;</a>
                 <button class="btn btn-glass">Contact Sales</button>
             </div>
@@ -499,6 +517,7 @@
                         <li><a href="#">Billing</a></li>
                         <li><a href="#">Checkout</a></li>
                         <li><a href="#">Payments</a></li>
+                        <li><a href="/app.apk" download style="color:var(--brand-success); font-weight:bold;">Download Android App</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
